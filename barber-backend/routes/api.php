@@ -332,8 +332,9 @@ Route::get('/active-booking', function (Request $request) {
         ], 500);
     }
     
+    // Status aktif: pending (menunggu), confirmed (check-in), in_progress (sedang dicukur)
     $active = Booking::where('user_id', $userId)
-        ->whereIn('status', ['waiting', 'processing'])
+        ->whereIn('status', ['pending', 'confirmed', 'in_progress', 'waiting', 'processing'])
         ->orderBy('created_at', 'desc')
         ->first();
 

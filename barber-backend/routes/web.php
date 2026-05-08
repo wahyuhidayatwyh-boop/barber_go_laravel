@@ -78,9 +78,9 @@ Route::middleware(['isAdmin'])->prefix('admin')->name('admin.')->group(function 
     Route::get('/bookings', [AdminController::class, 'getAllBookings'])->name('bookings');
     Route::post('/bookings', [AdminController::class, 'createBooking'])->name('bookings.create');
     Route::get('/bookings/time-slots', [AdminController::class, 'getAvailableTimeSlots'])->name('bookings.time-slots');
-    Route::put('/bookings/{id}/status', [AdminController::class, 'updateBookingStatus'])->name('bookings.update.status');
-    Route::post('/bookings/{id}/checkin', [AdminController::class, 'checkInBooking'])->name('bookings.checkin');
-    Route::post('/bookings/{id}/complete', [AdminController::class, 'completeBooking'])->name('bookings.complete');
+    Route::put('/bookings/{id}/status', [BookingStatusController::class, 'updateStatus'])->name('bookings.update.status');
+    Route::post('/bookings/{id}/checkin', [BookingStatusController::class, 'checkIn'])->name('bookings.checkin');
+    Route::post('/bookings/{id}/complete', [BookingStatusController::class, 'complete'])->name('bookings.complete');
     // Additional booking status routes
     Route::post('/bookings/{id}/cukur', [BookingStatusController::class, 'startCukur'])->name('bookings.cukur');
     Route::post('/bookings/{id}/cancel', [BookingStatusController::class, 'cancel'])->name('bookings.cancel');
