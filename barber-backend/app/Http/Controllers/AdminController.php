@@ -311,6 +311,12 @@ class AdminController extends Controller
         return response()->json($barbers);
     }
 
+    public function getBarber($id)
+    {
+        $barber = Barber::findOrFail($id);
+        return response()->json($barber);
+    }
+
     public function createBarber(Request $request)
     {
         $request->validate([

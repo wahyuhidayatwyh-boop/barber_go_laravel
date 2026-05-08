@@ -57,6 +57,7 @@ Route::middleware(['isAdmin'])->prefix('admin')->name('admin.')->group(function 
     // Barber management
     Route::get('/barbers-page', [AdminController::class, 'showBarbers'])->name('barbers');
     Route::get('/barbers', [AdminController::class, 'getAllBarbers'])->name('barbers.index');
+    Route::get('/barbers/{id}', [AdminController::class, 'getBarber'])->name('barbers.show');
     Route::post('/barbers', [AdminController::class, 'createBarber'])->name('barbers.create');
     Route::put('/barbers/{id}', [AdminController::class, 'updateBarber'])->name('barbers.update');
     Route::delete('/barbers/{id}', [AdminController::class, 'deleteBarber'])->name('barbers.delete');

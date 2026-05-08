@@ -136,18 +136,17 @@ document.getElementById('addBarberForm').addEventListener('submit', function(e) 
 
 // Handle edit click
 function editBarber(id) {
-    fetch(`/admin/barbers/${id}`) // Note: Ensure you have a show route for barber or use getAll and filter
+    fetch(`/admin/barbers/${id}`)
     .then(response => response.json())
     .then(barber => {
-        // Fallback: If no direct show route, we might need to get it differently
-        // But for now assuming AdminController has a getBarber or similar
+        if(barber) {
+            openEditModal(barber);
+        }
     })
     .catch(err => {
-        // Since we might not have a direct show route yet, let's just use the data from the page if needed
-        // Or better, let's ensure AdminController has a getBarber method
+        console.error('Error fetching barber:', err);
+        alert('Gagal mengambil data barber');
     });
-    
-    // For now, let's implement a generic way or add the method to AdminController
 }
 
 function openEditModal(barber) {
@@ -167,19 +166,6 @@ function openEditModal(barber) {
     }
     
     document.getElementById('editBarberModal').style.display = 'block';
-}
-
-// We need a way to get barber data for edit. Let's add a function to get it.
-function editBarber(id) {
-    // If we don't have a specific route, we can fetch all and find
-    fetch('{{ route("admin.barbers") }}')
-    .then(response => response.json())
-    .then(barbers => {
-        const barber = barbers.find(b => b.id == id);
-        if(barber) {
-            openEditModal(barber);
-        }
-    });
 }
 
 function closeEditBarberModal() {
