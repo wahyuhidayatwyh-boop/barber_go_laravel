@@ -5,6 +5,7 @@ use App\Models\User;
 use App\Models\Banner;
 use App\Models\Service;
 use App\Models\Product;
+use App\Models\Barber;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Hash;
@@ -219,12 +220,24 @@ Route::get('/barbers', function () {
 // 3. API CEK JAM TERISI (Kunci Jam di Flutter berdasarkan Tanggal & Barber)
 Route::get('/occupied-slots', function (Request $request) {
     $date = $request->query('date');
-    $barber = $request->query('barber');
+    $barberQuery = $request->query('barber'); // Bisa ID atau Nama
 
-    $slots = Booking::where('booking_date', $date)
-        ->where('barber_name', $barber)
-        ->where('status', '!=', 'cancelled')
-        ->pluck('booking_time'); 
+    $query = Booking::where('booking_date', $date)
+        ->where('status', '!=', 'cancelled');
+
+    if (is_numeric($barberQuery)) {
+        $query->where('barber_id', $barberQuery);
+    } else {
+        $barber = \App\Models\Barber::where('name', 'like', '%' . $barberQuery . '%')->first();
+        if ($barber) {
+            $query->where('barber_id', $barber->id);
+        } else {
+            // Jika barber tidak ditemukan, asumsikan tidak ada slot terisi untuk "nama" tersebut
+            return response()->json([]);
+        }
+    }
+
+    $slots = $query->pluck('booking_time'); 
 
     return response()->json($slots);
 });
@@ -235,16 +248,35 @@ Route::post('/bookings', function (Request $request) {
         $data = $request->all();
 
         // Normalisasi nama field agar kompatibel dengan berbagai payload mobile
-        $data['service_name'] = $data['service_name']
+        $serviceName = $data['service_name']
             ?? $data['service']
             ?? $data['selectedService']
             ?? null;
-        $data['barber_name'] = $data['barber_name']
+        $barberName = $data['barber_name']
             ?? $data['barber']
             ?? null;
+        
         $rawTotalPrice = $data['total_price'] ?? $data['price'] ?? null;
         if ($rawTotalPrice !== null) {
             $data['total_price'] = (int) preg_replace('/[^0-9]/', '', (string) $rawTotalPrice);
+        }
+
+        // Cari service_id jika belum ada
+        if (!isset($data['service_id']) && $serviceName) {
+            $service = Service::where('name', 'like', '%' . $serviceName . '%')->first();
+            if ($service) {
+                $data['service_id'] = $service->id;
+                if (!isset($data['total_price'])) $data['total_price'] = $service->price;
+                if (!isset($data['duration'])) $data['duration'] = $service->duration ?? 45;
+            }
+        }
+
+        // Cari barber_id jika belum ada
+        if (!isset($data['barber_id']) && $barberName) {
+            $barber = \App\Models\Barber::where('name', 'like', '%' . $barberName . '%')->first();
+            if ($barber) {
+                $data['barber_id'] = $barber->id;
+            }
         }
 
         // Validasi User ID wajib ada
@@ -255,28 +287,23 @@ Route::post('/bookings', function (Request $request) {
             ], 401);
         }
 
-        if (!Schema::hasColumn('bookings', 'user_id')) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Kolom user_id pada tabel bookings belum ada. Jalankan migrasi terbaru terlebih dahulu.'
-            ], 500);
+        // Generate booking_id unik (Format: BK + Ymd + Random)
+        if (!isset($data['booking_id'])) {
+            do {
+                $bookingId = 'BK' . date('Ymd') . strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 6));
+            } while (Booking::where('booking_id', $bookingId)->exists());
+            $data['booking_id'] = $bookingId;
         }
 
-        if (!Schema::hasColumn('bookings', 'total_price')) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Kolom total_price pada tabel bookings belum ada. Jalankan migrasi terbaru terlebih dahulu.'
-            ], 500);
+        // Map status 'waiting' to 'pending' (enum compatibility)
+        if (isset($data['status']) && $data['status'] === 'waiting') {
+            $data['status'] = 'pending';
         }
-
-        if (empty($data['service_name']) || empty($data['barber_name']) || empty($data['booking_date']) || empty($data['booking_time'])) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Data booking belum lengkap (service_name, barber_name, booking_date, booking_time).'
-            ], 422);
-        }
-
-        if (!isset($data['status'])) $data['status'] = 'waiting';
+        if (!isset($data['status'])) $data['status'] = 'pending';
+        
+        // Ensure payment_method and payment_status have defaults
+        if (!isset($data['payment_method'])) $data['payment_method'] = 'Online';
+        if (!isset($data['payment_status'])) $data['payment_status'] = 'unpaid';
 
         $booking = Booking::create($data);
 
@@ -286,6 +313,7 @@ Route::post('/bookings', function (Request $request) {
             'data' => $booking
         ], 201);
     } catch (\Exception $e) {
+        \Log::error('API Booking Error: ' . $e->getMessage());
         return response()->json([
             'status' => 'error',
             'message' => 'Gagal menyimpan: ' . $e->getMessage()
