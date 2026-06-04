@@ -92,17 +92,13 @@ Route::post('/update-profile', function (Request $request) {
 
         // Logika Ganti Foto Profil
         if ($request->hasFile('image')) {
-            // Hapus foto lama jika ada
-            if ($user->image) {
-                Storage::disk('public')->delete('profiles/' . $user->image);
-            }
-
-            // Simpan foto baru ke storage/app/public/profiles
             $file = $request->file('image');
-            $filename = time() . '.' . $file->getClientOriginalExtension();
-            $file->storeAs('profiles', $filename, 'public');
+            $mime = $file->getMimeType();
+            $data = file_get_contents($file->getRealPath());
+            $base64 = base64_encode($data);
             
-            $user->image = $filename; // Simpan nama file saja di database
+            // Simpan base64 string langsung ke database
+            $user->image = 'data:' . $mime . ';base64,' . $base64;
         }
 
         $user->save();
