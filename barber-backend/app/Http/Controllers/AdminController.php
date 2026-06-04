@@ -392,8 +392,12 @@ class AdminController extends Controller
         $booking = Booking::where('booking_id', $id)->firstOrFail();
         $booking->update(['status' => 'confirmed']);
 
-        // Broadcast the status update
-        event(new BookingStatusUpdated($booking));
+        // Broadcast the status update (wrapped in try-catch for serverless environments)
+        try {
+            event(new BookingStatusUpdated($booking));
+        } catch (\Exception $e) {
+            \Log::warning('Broadcasting failed: ' . $e->getMessage());
+        }
 
         return response()->json($booking);
     }
@@ -619,8 +623,12 @@ class AdminController extends Controller
         $booking = Booking::where('booking_id', $id)->firstOrFail();
         $booking->update(['status' => 'completed']);
 
-        // Broadcast the status update
-        event(new BookingStatusUpdated($booking));
+        // Broadcast the status update (wrapped in try-catch for serverless environments)
+        try {
+            event(new BookingStatusUpdated($booking));
+        } catch (\Exception $e) {
+            \Log::warning('Broadcasting failed: ' . $e->getMessage());
+        }
 
         return response()->json($booking);
     }
