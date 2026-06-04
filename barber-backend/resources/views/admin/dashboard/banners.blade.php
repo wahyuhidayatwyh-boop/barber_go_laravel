@@ -42,7 +42,8 @@
             @if(isset($banners) && $banners->count() > 0)
                 @foreach($banners as $banner)
                     <div class="product-card" data-id="{{ $banner->id }}">
-                        <img class="product-card-img" src="{{ asset($banner->image_path ?? $banner->image_url ?? 'assets/img/default-banner.jpg') }}" alt="{{ $banner->title }}" style="height: 150px; object-fit: cover;">
+                        @php $bnrImg = $banner->image_path ?? $banner->image_url ?? 'assets/img/default-banner.jpg'; @endphp
+                        <img class="product-card-img" src="{{ str_starts_with($bnrImg, 'data:image') ? $bnrImg : asset($bnrImg) }}" alt="{{ $banner->title }}" style="height: 150px; object-fit: cover;">
                         <h3>{{ $banner->title }}</h3>
                         <p style="font-size: 0.9rem; color: var(--text-grey); margin-bottom: 10px;">{{ Str::limit($banner->description, 50) }}</p>
                         <span class="stock-status {{ $banner->is_active ? 'ready' : 'out-of-stock' }}">{{ $banner->is_active ? 'Aktif' : 'Non-aktif' }}</span>
@@ -132,7 +133,7 @@ function editBanner(id) {
         const currentImg = document.getElementById('currentBannerImage');
         if (banner.image_path || banner.image_url) {
             const imgPath = banner.image_path || banner.image_url;
-            const fullUrl = imgPath.startsWith('http') ? imgPath : '/' + imgPath.replace(/^\//, '');
+            const fullUrl = (imgPath.startsWith('http') || imgPath.startsWith('data:image')) ? imgPath : '/' + imgPath.replace(/^\//, '');
             currentImg.innerHTML = `<p>Foto saat ini:</p><img src="${fullUrl}" style="width: 100px; border-radius: 4px;">`;
         } else {
             currentImg.innerHTML = '';

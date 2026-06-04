@@ -45,7 +45,8 @@
                         <div class="service-info">
                             <div style="display: flex; align-items: center; gap: 1rem;">
                                 @if($service->image_path || $service->image_url)
-                                    <img src="{{ asset($service->image_path ?? $service->image_url) }}" style="width: 60px; height: 60px; border-radius: 8px; object-fit: cover;">
+                                    @php $srvImg = $service->image_path ?? $service->image_url ?? ''; @endphp
+                                    <img src="{{ str_starts_with($srvImg, 'data:image') ? $srvImg : asset($srvImg) }}" style="width: 60px; height: 60px; border-radius: 8px; object-fit: cover;">
                                 @endif
                                 <div>
                                     <h4>{{ $service->name }}</h4>
@@ -111,7 +112,8 @@
             @if(isset($products) && $products->count() > 0)
                 @foreach($products as $product)
                     <div class="product-card" data-id="{{ $product->id }}">
-                        <img class="product-card-img" src="{{ asset($product->image_path ?? $product->image_url ?? $product->image ?? $product->img ?? 'assets/img/default-product.jpg') }}" alt="{{ $product->name ?? 'Product' }}">
+                        @php $prdImg = $product->image_path ?? $product->image_url ?? $product->image ?? $product->img ?? 'assets/img/default-product.jpg'; @endphp
+                        <img class="product-card-img" src="{{ str_starts_with($prdImg, 'data:image') ? $prdImg : asset($prdImg) }}" alt="{{ $product->name ?? 'Product' }}">
                         <h3>{{ $product->name ?? 'N/A' }}</h3>
                         <span class="product-price">Rp {{ number_format($product->price, 0, ',', '.') }}</span>
                         <span class="stock-status {{ $product->status == 'active' || $product->stok ? 'ready' : 'out-of-stock' }}">{{ $product->status ?? $product->stok ?? 'Ready Stock' }}</span>
@@ -281,7 +283,7 @@ function editService(id) {
         const currentImg = document.getElementById('currentServiceImage');
         if (service.image_path || service.image_url) {
             const imgPath = service.image_path || service.image_url;
-            const fullUrl = imgPath.startsWith('http') ? imgPath : '/' + imgPath.replace(/^\//, '');
+            const fullUrl = (imgPath.startsWith('http') || imgPath.startsWith('data:image')) ? imgPath : '/' + imgPath.replace(/^\//, '');
             currentImg.innerHTML = `<p>Foto saat ini:</p><img src="${fullUrl}" style="width: 100px; border-radius: 4px;">`;
         } else {
             currentImg.innerHTML = '';
@@ -311,7 +313,7 @@ function editProduct(id) {
         const currentImg = document.getElementById('currentProductImage');
         if (product.image_path || product.image_url) {
             const imgPath = product.image_path || product.image_url;
-            const fullUrl = imgPath.startsWith('http') ? imgPath : '/' + imgPath.replace(/^\//, '');
+            const fullUrl = (imgPath.startsWith('http') || imgPath.startsWith('data:image')) ? imgPath : '/' + imgPath.replace(/^\//, '');
             currentImg.innerHTML = `<p>Foto saat ini:</p><img src="${fullUrl}" style="width: 100px; border-radius: 4px;">`;
         } else {
             currentImg.innerHTML = '';

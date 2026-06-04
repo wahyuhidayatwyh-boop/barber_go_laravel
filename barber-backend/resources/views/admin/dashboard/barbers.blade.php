@@ -46,7 +46,8 @@
             @if(isset($barbers) && $barbers->count() > 0)
                 @foreach($barbers as $barber)
                     <div class="product-card" data-id="{{ $barber->id }}">
-                        <img class="product-card-img" src="{{ asset($barber->image_path ?? $barber->image_url ?? 'assets/img/default-barber.jpg') }}" alt="{{ $barber->name }}" style="height: 200px; object-fit: cover; border-radius: 8px 8px 0 0;">
+                        @php $brbImg = $barber->image_path ?? $barber->image_url ?? 'assets/img/default-barber.jpg'; @endphp
+                        <img class="product-card-img" src="{{ str_starts_with($brbImg, 'data:image') ? $brbImg : asset($brbImg) }}" alt="{{ $barber->name }}" style="height: 200px; object-fit: cover; border-radius: 8px 8px 0 0;">
                         <div style="padding: 1.2rem;">
                             <h3 style="margin-bottom: 0.5rem;">{{ $barber->name }}</h3>
                             <p style="font-size: 0.9rem; color: var(--text-grey); margin-bottom: 0.5rem;">{{ $barber->specialty ?? 'General Barber' }}</p>
@@ -159,7 +160,7 @@ function openEditModal(barber) {
     const currentImg = document.getElementById('currentBarberImage');
     if (barber.image_path || barber.image_url) {
         const imgPath = barber.image_path || barber.image_url;
-        const fullUrl = imgPath.startsWith('http') ? imgPath : '/' + imgPath.replace(/^\//, '');
+        const fullUrl = (imgPath.startsWith('http') || imgPath.startsWith('data:image')) ? imgPath : '/' + imgPath.replace(/^\//, '');
         currentImg.innerHTML = `<p>Foto saat ini:</p><img src="${fullUrl}" style="width: 100px; border-radius: 4px;">`;
     } else {
         currentImg.innerHTML = '';
