@@ -30,4 +30,14 @@ class Banner extends Model
             }
         });
     }
+
+    /**
+     * The attributes that should be cast.
+     */
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+        ];
+    }
 }

@@ -53,6 +53,7 @@ class Product extends Model
         return [
             'price' => 'integer',
             'stock_quantity' => 'integer',
+            'is_available' => 'boolean',
         ];
     }
 }

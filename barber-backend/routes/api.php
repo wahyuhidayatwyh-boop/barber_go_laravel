@@ -155,118 +155,113 @@ Route::post('/update-profile', function (Request $request) {
 
 // 1. API BERANDA (Banner, Layanan, Produk, Status Toko, & Antrean Toko)
 Route::get('/home-data', function (Request $request) {
-    $settings = Schema::hasTable('barbershop_settings')
-        ? DB::table('barbershop_settings')->first()
-        : null;
-    $totalQueue = Schema::hasTable('bookings')
-        ? Booking::where('status', 'waiting')->whereDate('booking_date', now())->count()
-        : 0;
+    try {
+        $settings = DB::table('barbershop_settings')->first();
+        $totalQueue = Booking::where('status', 'waiting')->whereDate('booking_date', now())->count();
 
-    // Mapping services untuk menambahkan full URL pada image_url
-    $services = Schema::hasTable('services')
-        ? Service::all()->map(function ($service) use ($request) {
+        // Mapping services untuk menambahkan full URL pada image_url
+        $services = Service::all()->map(function ($service) use ($request) {
             $service->price = (int) ($service->price ?? 0);
             $service->image_url = serviceImageUrl($request, $service->image_url, $service->id);
             return $service;
-        })
-        : collect();
-
-    $products = collect();
-    if (Schema::hasTable('products')) {
-        $productQuery = Product::query();
-        if (Schema::hasColumn('products', 'is_available')) {
-            $productQuery->where('is_available', true);
-        }
-        $products = $productQuery->orderByDesc('id')->get()->map(function ($product) use ($request) {
-            $product->price = (int) ($product->price ?? 0);
-            $product->image_url = productImageUrl($request, $product->image_url, $product->id);
-            return $product;
         });
-    }
 
-    $banners = collect();
-    if (Schema::hasTable('banners')) {
-        $bannerQuery = Banner::query();
-        if (Schema::hasColumn('banners', 'is_active')) {
-            $bannerQuery->where('is_active', true);
-        }
-        $banners = $bannerQuery->get()->map(function ($banner) use ($request) {
+        $products = Product::whereRaw('"is_available" = true')
+            ->orderByDesc('id')->get()->map(function ($product) use ($request) {
+                $product->price = (int) ($product->price ?? 0);
+                $product->image_url = productImageUrl($request, $product->image_url, $product->id);
+                return $product;
+            });
+
+        $banners = Banner::whereRaw('"is_active" = true')->get()->map(function ($banner) use ($request) {
             // Always regenerate image_url from image_path to avoid stale localhost URLs
             $imageSrc = $banner->image_path ?? $banner->image_url ?? null;
             $banner->image_url = bannerImageUrl($request, $imageSrc, $banner->id);
             return $banner;
         });
-    }
 
-    return response()->json([
-        'status' => 'success',
-        'barber_status' => [
-            'is_open' => $settings ? (bool)$settings->is_open : true, 
-            'total_queue' => $totalQueue,
-            'shop_name' => $settings->shop_name ?? 'BARBER GO Barbershop',
-            'address' => $settings->address ?? 'Jl. Merdeka No. 123, Jakarta Pusat',
-        ],
-        'banners' => $banners,
-        'services' => $services,
-        'products' => $products,
-    ]);
+        return response()->json([
+            'status' => 'success',
+            'barber_status' => [
+                'is_open' => $settings ? (bool)$settings->is_open : true, 
+                'total_queue' => $totalQueue,
+                'shop_name' => $settings->shop_name ?? 'BARBER GO Barbershop',
+                'address' => $settings->address ?? 'Jl. Merdeka No. 123, Jakarta Pusat',
+            ],
+            'banners' => $banners,
+            'services' => $services,
+            'products' => $products,
+        ]);
+    } catch (\Exception $e) {
+        \Log::error('API Home Data Error: ' . $e->getMessage());
+        return response()->json(['status' => 'error', 'message' => 'Gagal memuat data: ' . $e->getMessage()], 500);
+    }
 });
 
 // 2. API DAFTAR BARBER (Untuk halaman Pilih Barber)
 Route::get('/barbers', function (Request $request) {
-    $barbers = Barber::all()->map(function ($barber) use ($request) {
-        $baseUrl = rtrim($request->getSchemeAndHttpHost(), '/');
-        $imageSrc = $barber->image_path ?? $barber->image_url ?? null;
-        if ($imageSrc && str_starts_with($imageSrc, 'data:image')) {
-            $barber->image_url = $baseUrl . "/api/image?type=barber&id={$barber->id}";
-        } elseif ($imageSrc && !preg_match('/^https?:\/\//i', $imageSrc)) {
-            $cleanPath = ltrim($imageSrc, '/');
-            if (!str_starts_with($cleanPath, 'storage/')) {
-                $cleanPath = 'storage/barbers/' . basename($cleanPath);
+    try {
+        $barbers = Barber::all()->map(function ($barber) use ($request) {
+            $baseUrl = rtrim($request->getSchemeAndHttpHost(), '/');
+            $imageSrc = $barber->image_path ?? $barber->image_url ?? null;
+            if ($imageSrc && str_starts_with($imageSrc, 'data:image')) {
+                $barber->image_url = $baseUrl . "/api/image?type=barber&id={$barber->id}";
+            } elseif ($imageSrc && !preg_match('/^https?:\/\//i', $imageSrc)) {
+                $cleanPath = ltrim($imageSrc, '/');
+                if (!str_starts_with($cleanPath, 'storage/')) {
+                    $cleanPath = 'storage/barbers/' . basename($cleanPath);
+                }
+                $barber->image_url = $baseUrl . '/' . $cleanPath;
+            } else {
+                $barber->image_url = $imageSrc;
             }
-            $barber->image_url = $baseUrl . '/' . $cleanPath;
-        } else {
-            $barber->image_url = $imageSrc;
-        }
-        return [
-            'id' => $barber->id,
-            'name' => $barber->name,
-            'specialty' => $barber->specialty ?? 'Barber',
-            'rating' => (float) ($barber->rating ?? 0),
-            'image_url' => $barber->image_url,
-            'status' => $barber->status ?? 'active',
-        ];
-    });
+            return [
+                'id' => $barber->id,
+                'name' => $barber->name,
+                'specialty' => $barber->specialty ?? 'Barber',
+                'rating' => (float) ($barber->rating ?? 0),
+                'image_url' => $barber->image_url,
+                'status' => $barber->status ?? 'active',
+            ];
+        });
 
-    return response()->json([
-        'status' => 'success',
-        'data' => $barbers
-    ]);
+        return response()->json([
+            'status' => 'success',
+            'data' => $barbers
+        ]);
+    } catch (\Exception $e) {
+        \Log::error('API Barbers Error: ' . $e->getMessage());
+        return response()->json(['status' => 'error', 'message' => 'Gagal memuat barbers: ' . $e->getMessage()], 500);
+    }
 });
 
 // 3. API CEK JAM TERISI (Kunci Jam di Flutter berdasarkan Tanggal & Barber)
 Route::get('/occupied-slots', function (Request $request) {
-    $date = $request->query('date');
-    $barberQuery = $request->query('barber'); // Bisa ID atau Nama
+    try {
+        $date = $request->query('date');
+        $barberQuery = $request->query('barber'); // Bisa ID atau Nama
 
-    $query = Booking::where('booking_date', $date)
-        ->where('status', '!=', 'cancelled');
+        $query = Booking::where('booking_date', $date)
+            ->where('status', '!=', 'cancelled');
 
-    if (is_numeric($barberQuery)) {
-        $query->where('barber_id', $barberQuery);
-    } else {
-        $barber = \App\Models\Barber::where('name', 'like', '%' . $barberQuery . '%')->first();
-        if ($barber) {
-            $query->where('barber_id', $barber->id);
+        if (is_numeric($barberQuery)) {
+            $query->where('barber_id', $barberQuery);
         } else {
-            // Jika barber tidak ditemukan, asumsikan tidak ada slot terisi untuk "nama" tersebut
-            return response()->json([]);
+            $barber = \App\Models\Barber::where('name', 'like', '%' . $barberQuery . '%')->first();
+            if ($barber) {
+                $query->where('barber_id', $barber->id);
+            } else {
+                return response()->json([]);
+            }
         }
+
+        $slots = $query->pluck('booking_time'); 
+
+        return response()->json($slots);
+    } catch (\Exception $e) {
+        \Log::error('API Occupied Slots Error: ' . $e->getMessage());
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
     }
-
-    $slots = $query->pluck('booking_time'); 
-
-    return response()->json($slots);
 });
 
 // 4. API SIMPAN BOOKING BARU
@@ -369,87 +364,87 @@ Route::post('/bookings', function (Request $request) {
 
 // 5. API BOOKING AKTIF (Hanya pesanan milik user yang sedang login)
 Route::get('/active-booking', function (Request $request) {
-    $userId = $request->query('user_id');
+    try {
+        $userId = $request->query('user_id');
 
-    if (!Schema::hasColumn('bookings', 'user_id')) {
+        // user_id column sudah ada di tabel bookings
+        
+        // Status aktif: pending (menunggu), confirmed (check-in), in_progress (sedang dicukur)
+        $active = Booking::with(['service', 'barber'])
+            ->where('user_id', $userId)
+            ->whereIn('status', ['pending', 'confirmed', 'in_progress', 'waiting', 'processing'])
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        if ($active) {
+            $active = [
+                'id' => $active->id,
+                'booking_id' => $active->booking_id,
+                'user_id' => $active->user_id,
+                'service_id' => $active->service_id,
+                'barber_id' => $active->barber_id,
+                'service_name' => $active->service->name ?? '-',
+                'barber_name' => $active->barber->name ?? '-',
+                'booking_date' => $active->booking_date ? $active->booking_date->format('Y-m-d') : null,
+                'booking_time' => $active->booking_time,
+                'total_price' => $active->total_price,
+                'duration' => $active->duration,
+                'status' => $active->status,
+                'payment_method' => $active->payment_method,
+                'payment_status' => $active->payment_status,
+                'created_at' => $active->created_at->format('Y-m-d H:i:s'),
+            ];
+        }
+
         return response()->json([
-            'status' => 'error',
-            'message' => 'Kolom user_id pada tabel bookings belum ada. Jalankan migrasi terbaru.'
-        ], 500);
+            'status' => 'success',
+            'data' => $active
+        ]);
+    } catch (\Exception $e) {
+        \Log::error('API Active Booking Error: ' . $e->getMessage());
+        return response()->json(['status' => 'error', 'message' => 'Gagal memuat booking aktif: ' . $e->getMessage()], 500);
     }
-    
-    // Status aktif: pending (menunggu), confirmed (check-in), in_progress (sedang dicukur)
-    $active = Booking::with(['service', 'barber'])
-        ->where('user_id', $userId)
-        ->whereIn('status', ['pending', 'confirmed', 'in_progress', 'waiting', 'processing'])
-        ->orderBy('created_at', 'desc')
-        ->first();
-
-    if ($active) {
-        $active = [
-            'id' => $active->id,
-            'booking_id' => $active->booking_id,
-            'user_id' => $active->user_id,
-            'service_id' => $active->service_id,
-            'barber_id' => $active->barber_id,
-            'service_name' => $active->service->name ?? '-',
-            'barber_name' => $active->barber->name ?? '-',
-            'booking_date' => $active->booking_date ? $active->booking_date->format('Y-m-d') : null,
-            'booking_time' => $active->booking_time,
-            'total_price' => $active->total_price,
-            'duration' => $active->duration,
-            'status' => $active->status,
-            'payment_method' => $active->payment_method,
-            'payment_status' => $active->payment_status,
-            'created_at' => $active->created_at->format('Y-m-d H:i:s'),
-        ];
-    }
-
-    return response()->json([
-        'status' => 'success',
-        'data' => $active
-    ]);
 });
 
 // 6. API RIWAYAT BOOKING (Hanya riwayat milik user yang login)
 Route::get('/booking-history', function (Request $request) {
-    $userId = $request->query('user_id');
+    try {
+        $userId = $request->query('user_id');
 
-    if (!Schema::hasColumn('bookings', 'user_id')) {
+        // user_id column sudah ada di tabel bookings
+        
+        $history = Booking::with(['service', 'barber'])
+            ->where('user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($b) {
+                return [
+                    'id' => $b->id,
+                    'booking_id' => $b->booking_id,
+                    'user_id' => $b->user_id,
+                    'service_id' => $b->service_id,
+                    'barber_id' => $b->barber_id,
+                    'service_name' => $b->service->name ?? '-',
+                    'barber_name' => $b->barber->name ?? '-',
+                    'booking_date' => $b->booking_date ? $b->booking_date->format('Y-m-d') : null,
+                    'booking_time' => $b->booking_time,
+                    'total_price' => $b->total_price,
+                    'duration' => $b->duration,
+                    'status' => $b->status,
+                    'payment_method' => $b->payment_method,
+                    'payment_status' => $b->payment_status,
+                    'created_at' => $b->created_at->format('Y-m-d H:i:s'),
+                ];
+            });
+
         return response()->json([
-            'status' => 'error',
-            'message' => 'Kolom user_id pada tabel bookings belum ada. Jalankan migrasi terbaru.'
-        ], 500);
+            'status' => 'success',
+            'data' => $history
+        ]);
+    } catch (\Exception $e) {
+        \Log::error('API Booking History Error: ' . $e->getMessage());
+        return response()->json(['status' => 'error', 'message' => 'Gagal memuat riwayat: ' . $e->getMessage()], 500);
     }
-    
-    $history = Booking::with(['service', 'barber'])
-        ->where('user_id', $userId)
-        ->orderBy('created_at', 'desc')
-        ->get()
-        ->map(function ($b) {
-            return [
-                'id' => $b->id,
-                'booking_id' => $b->booking_id,
-                'user_id' => $b->user_id,
-                'service_id' => $b->service_id,
-                'barber_id' => $b->barber_id,
-                'service_name' => $b->service->name ?? '-',
-                'barber_name' => $b->barber->name ?? '-',
-                'booking_date' => $b->booking_date ? $b->booking_date->format('Y-m-d') : null,
-                'booking_time' => $b->booking_time,
-                'total_price' => $b->total_price,
-                'duration' => $b->duration,
-                'status' => $b->status,
-                'payment_method' => $b->payment_method,
-                'payment_status' => $b->payment_status,
-                'created_at' => $b->created_at->format('Y-m-d H:i:s'),
-            ];
-        });
-
-    return response()->json([
-        'status' => 'success',
-        'data' => $history
-    ]);
 });
 
 // 7. API BATALKAN BOOKING
