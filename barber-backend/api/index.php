@@ -23,11 +23,23 @@ if (!is_dir($storagePath)) {
     mkdir($storagePath.'/framework/cache/data', 0777, true);
     mkdir($storagePath.'/framework/sessions', 0777, true);
     mkdir($storagePath.'/logs', 0777, true);
+    mkdir($storagePath.'/app/public/profiles', 0777, true);
+    mkdir($storagePath.'/app/public/services', 0777, true);
+    mkdir($storagePath.'/app/public/products', 0777, true);
+    mkdir($storagePath.'/app/public/banners', 0777, true);
 }
 
 // Serve static files from public/ directly (bypass Vercel static routing issues)
 $uri = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
 $publicFile = __DIR__ . '/../public' . $uri;
+
+// Check /tmp/storage for uploaded files (temporary Vercel storage)
+if (str_starts_with($uri, '/storage/')) {
+    $tmpFile = '/tmp/storage/app/public/' . substr($uri, 9);
+    if (file_exists($tmpFile) && is_file($tmpFile)) {
+        $publicFile = $tmpFile;
+    }
+}
 
 if ($uri !== '/' && file_exists($publicFile) && is_file($publicFile)) {
     $ext = strtolower(pathinfo($publicFile, PATHINFO_EXTENSION));
