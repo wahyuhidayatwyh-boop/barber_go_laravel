@@ -15,89 +15,59 @@ use Illuminate\Support\Facades\Schema;
 
 function profileImageUrl(Request $request, ?string $image, ?int $version = null): ?string
 {
-    if (!$image) {
-        return null;
-    }
+    if (!$image) return null;
+    if (preg_match('/^https?:\/\//i', $image)) return $image;
 
     $baseUrl = rtrim($request->getSchemeAndHttpHost(), '/');
-    $url = $baseUrl . '/storage/profiles/' . ltrim($image, '/');
-
+    $cleanPath = ltrim($image, '/');
+    if (!str_starts_with($cleanPath, 'storage/')) {
+        $cleanPath = 'storage/profiles/' . basename($cleanPath);
+    }
+    
+    $url = $baseUrl . '/' . $cleanPath;
     return $version ? $url . '?v=' . $version : $url;
 }
 
 function serviceImageUrl(Request $request, ?string $image): ?string
 {
-    if (!$image) {
-        return null;
-    }
-
-    if (preg_match('/^https?:\/\//i', $image)) {
-        return $image;
-    }
+    if (!$image) return null;
+    if (preg_match('/^https?:\/\//i', $image)) return $image;
 
     $baseUrl = rtrim($request->getSchemeAndHttpHost(), '/');
-    $filename = ltrim($image, '/');
-
-    // Prioritas file dari disk public Laravel (storage/app/public/services)
-    if (Storage::disk('public')->exists('services/' . $filename)) {
-        return $baseUrl . '/storage/services/' . $filename;
+    $cleanPath = ltrim($image, '/');
+    if (!str_starts_with($cleanPath, 'storage/')) {
+        $cleanPath = 'storage/services/' . basename($cleanPath);
     }
 
-    // Fallback jika file disimpan manual di public/services
-    if (file_exists(public_path('services/' . $filename))) {
-        return $baseUrl . '/services/' . $filename;
-    }
-
-    // Default tetap ke path storage agar konsisten dengan proses upload Laravel
-    return $baseUrl . '/storage/services/' . $filename;
+    return $baseUrl . '/' . $cleanPath;
 }
 
 function productImageUrl(Request $request, ?string $image): ?string
 {
-    if (!$image) {
-        return null;
-    }
-
-    if (preg_match('/^https?:\/\//i', $image)) {
-        return $image;
-    }
+    if (!$image) return null;
+    if (preg_match('/^https?:\/\//i', $image)) return $image;
 
     $baseUrl = rtrim($request->getSchemeAndHttpHost(), '/');
-    $filename = ltrim($image, '/');
-
-    if (Storage::disk('public')->exists('products/' . $filename)) {
-        return $baseUrl . '/storage/products/' . $filename;
+    $cleanPath = ltrim($image, '/');
+    if (!str_starts_with($cleanPath, 'storage/')) {
+        $cleanPath = 'storage/products/' . basename($cleanPath);
     }
 
-    if (file_exists(public_path('products/' . $filename))) {
-        return $baseUrl . '/products/' . $filename;
-    }
-
-    return $baseUrl . '/storage/products/' . $filename;
+    return $baseUrl . '/' . $cleanPath;
 }
 
 function bannerImageUrl(Request $request, ?string $image): ?string
 {
-    if (!$image) {
-        return null;
-    }
-
-    if (preg_match('/^https?:\/\//i', $image)) {
-        return $image;
-    }
+    if (!$image) return null;
+    if (preg_match('/^https?:\/\//i', $image)) return $image;
 
     $baseUrl = rtrim($request->getSchemeAndHttpHost(), '/');
-    $filename = ltrim($image, '/');
-
-    if (Storage::disk('public')->exists('banners/' . $filename)) {
-        return $baseUrl . '/storage/banners/' . $filename;
+    $cleanPath = ltrim($image, '/');
+    if (!str_starts_with($cleanPath, 'storage/')) {
+        $cleanPath = 'storage/banners/' . basename($cleanPath);
     }
 
-    if (file_exists(public_path('banners/' . $filename))) {
-        return $baseUrl . '/banners/' . $filename;
-    }
-
-    return $baseUrl . '/storage/banners/' . $filename;
+    return $baseUrl . '/' . $cleanPath;
 }
 /*
 |--------------------------------------------------------------------------
@@ -188,9 +158,9 @@ Route::get('/home-data', function (Request $request) {
             $bannerQuery->where('is_active', true);
         }
         $banners = $bannerQuery->get()->map(function ($banner) use ($request) {
-            if (isset($banner->image_url)) {
-                $banner->image_url = bannerImageUrl($request, $banner->image_url);
-            }
+            // Always regenerate image_url from image_path to avoid stale localhost URLs
+            $imageSrc = $banner->image_path ?? $banner->image_url ?? null;
+            $banner->image_url = bannerImageUrl($request, $imageSrc);
             return $banner;
         });
     }
@@ -210,10 +180,30 @@ Route::get('/home-data', function (Request $request) {
 });
 
 // 2. API DAFTAR BARBER (Untuk halaman Pilih Barber)
-Route::get('/barbers', function () {
+Route::get('/barbers', function (Request $request) {
+    $barbers = Barber::all()->map(function ($barber) use ($request) {
+        $baseUrl = rtrim($request->getSchemeAndHttpHost(), '/');
+        $imageSrc = $barber->image_path ?? $barber->image_url ?? null;
+        if ($imageSrc && !preg_match('/^https?:\/\//i', $imageSrc)) {
+            $cleanPath = ltrim($imageSrc, '/');
+            if (!str_starts_with($cleanPath, 'storage/')) {
+                $cleanPath = 'storage/barbers/' . basename($cleanPath);
+            }
+            $barber->image_url = $baseUrl . '/' . $cleanPath;
+        }
+        return [
+            'id' => $barber->id,
+            'name' => $barber->name,
+            'specialty' => $barber->specialty ?? 'Barber',
+            'rating' => (float) ($barber->rating ?? 0),
+            'image_url' => $barber->image_url,
+            'status' => $barber->status ?? 'active',
+        ];
+    });
+
     return response()->json([
         'status' => 'success',
-        'data' => DB::table('barbers')->get()
+        'data' => $barbers
     ]);
 });
 
@@ -307,10 +297,29 @@ Route::post('/bookings', function (Request $request) {
 
         $booking = Booking::create($data);
 
+        // Reload with relationships for complete response
+        $booking->load(['service', 'barber']);
+
         return response()->json([
             'status' => 'success',
             'message' => 'Booking berhasil disimpan',
-            'data' => $booking
+            'data' => [
+                'id' => $booking->id,
+                'booking_id' => $booking->booking_id,
+                'user_id' => $booking->user_id,
+                'service_id' => $booking->service_id,
+                'barber_id' => $booking->barber_id,
+                'service_name' => $booking->service->name ?? $serviceName ?? '-',
+                'barber_name' => $booking->barber->name ?? $barberName ?? '-',
+                'booking_date' => $booking->booking_date ? $booking->booking_date->format('Y-m-d') : null,
+                'booking_time' => $booking->booking_time,
+                'total_price' => $booking->total_price,
+                'duration' => $booking->duration,
+                'status' => $booking->status,
+                'payment_method' => $booking->payment_method,
+                'payment_status' => $booking->payment_status,
+                'created_at' => $booking->created_at->format('Y-m-d H:i:s'),
+            ]
         ], 201);
     } catch (\Exception $e) {
         \Log::error('API Booking Error: ' . $e->getMessage());
@@ -333,10 +342,31 @@ Route::get('/active-booking', function (Request $request) {
     }
     
     // Status aktif: pending (menunggu), confirmed (check-in), in_progress (sedang dicukur)
-    $active = Booking::where('user_id', $userId)
+    $active = Booking::with(['service', 'barber'])
+        ->where('user_id', $userId)
         ->whereIn('status', ['pending', 'confirmed', 'in_progress', 'waiting', 'processing'])
         ->orderBy('created_at', 'desc')
         ->first();
+
+    if ($active) {
+        $active = [
+            'id' => $active->id,
+            'booking_id' => $active->booking_id,
+            'user_id' => $active->user_id,
+            'service_id' => $active->service_id,
+            'barber_id' => $active->barber_id,
+            'service_name' => $active->service->name ?? '-',
+            'barber_name' => $active->barber->name ?? '-',
+            'booking_date' => $active->booking_date ? $active->booking_date->format('Y-m-d') : null,
+            'booking_time' => $active->booking_time,
+            'total_price' => $active->total_price,
+            'duration' => $active->duration,
+            'status' => $active->status,
+            'payment_method' => $active->payment_method,
+            'payment_status' => $active->payment_status,
+            'created_at' => $active->created_at->format('Y-m-d H:i:s'),
+        ];
+    }
 
     return response()->json([
         'status' => 'success',
@@ -355,9 +385,29 @@ Route::get('/booking-history', function (Request $request) {
         ], 500);
     }
     
-    $history = Booking::where('user_id', $userId)
+    $history = Booking::with(['service', 'barber'])
+        ->where('user_id', $userId)
         ->orderBy('created_at', 'desc')
-        ->get();
+        ->get()
+        ->map(function ($b) {
+            return [
+                'id' => $b->id,
+                'booking_id' => $b->booking_id,
+                'user_id' => $b->user_id,
+                'service_id' => $b->service_id,
+                'barber_id' => $b->barber_id,
+                'service_name' => $b->service->name ?? '-',
+                'barber_name' => $b->barber->name ?? '-',
+                'booking_date' => $b->booking_date ? $b->booking_date->format('Y-m-d') : null,
+                'booking_time' => $b->booking_time,
+                'total_price' => $b->total_price,
+                'duration' => $b->duration,
+                'status' => $b->status,
+                'payment_method' => $b->payment_method,
+                'payment_status' => $b->payment_status,
+                'created_at' => $b->created_at->format('Y-m-d H:i:s'),
+            ];
+        });
 
     return response()->json([
         'status' => 'success',

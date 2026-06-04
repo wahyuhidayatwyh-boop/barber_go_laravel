@@ -31,14 +31,10 @@ class Barber extends Model
     protected static function booted()
     {
         static::saving(function ($barber) {
-            // Sync image_path and image_url
+            // Sync image_path and image_url - store relative paths only
             if ($barber->isDirty('image_path') && !$barber->isDirty('image_url')) {
-                $path = $barber->image_path;
-                if ($path && !filter_var($path, FILTER_VALIDATE_URL)) {
-                    $barber->image_url = url($path);
-                } else {
-                    $barber->image_url = $path;
-                }
+                // Store relative path in image_url too (will be resolved at API response time)
+                $barber->image_url = $barber->image_path;
             } elseif ($barber->isDirty('image_url') && !$barber->isDirty('image_path')) {
                 $barber->image_path = $barber->image_url;
             }

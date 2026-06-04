@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Tugas AJAX</title>
+</head>
+<body>
+
+    <!-- STEP 1: Tombol pemicu AJAX -->
+    <button id="btn-tampil">Tampilkan Profil</button>
+
+    <!-- STEP 2: Tempat menampilkan hasil -->
+    <div id="hasil-profil"></div>
+
+    <script>
+        // STEP 3: Ambil referensi elemen HTML
+        const tombol = document.getElementById('btn-tampil');
+        const hasilDiv = document.getElementById('hasil-profil');
+
+        // STEP 4: Pasang event saat tombol diklik
+        tombol.addEventListener('click', function() {
+
+            // STEP 5: Kirim request ke data.php pakai fetch()
+            fetch('data.php')
+                .then(function(response) {
+                    // Ubah response menjadi objek JSON
+                    return response.json();
+                })
+                .then(function(data) {
+                    // STEP 6: Tampilkan data ke div
+                    hasilDiv.innerHTML =
+                        '<strong>Nama: ' + data.nama +
+                        ' | Pekerjaan: ' + data.pekerjaan +
+                        ' | Lokasi: ' + data.lokasi + '</strong>';
+                })
+                .catch(function(error) {
+                    hasilDiv.innerHTML = 'Gagal mengambil data!';
+                });
+        });
+    </script>
+
+</body>
+</html>
+  

@@ -31,14 +31,9 @@ class Service extends Model
     protected static function booted()
     {
         static::saving(function ($service) {
-            // Sync image_path and image_url
+            // Sync image_path and image_url - store relative paths only
             if ($service->isDirty('image_path') && !$service->isDirty('image_url')) {
-                $path = $service->image_path;
-                if ($path && !filter_var($path, FILTER_VALIDATE_URL)) {
-                    $service->image_url = url($path);
-                } else {
-                    $service->image_url = $path;
-                }
+                $service->image_url = $service->image_path;
             } elseif ($service->isDirty('image_url') && !$service->isDirty('image_path')) {
                 $service->image_path = $service->image_url;
             }
