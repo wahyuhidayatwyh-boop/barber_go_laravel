@@ -22,7 +22,15 @@ $app = Application::configure(basePath: dirname(__DIR__))
 
 // Vercel read-only filesystem workaround
 if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL'])) {
+    // Create required directories in /tmp
+    @mkdir('/tmp/storage/framework/views', 0777, true);
+    @mkdir('/tmp/storage/framework/cache/data', 0777, true);
+    @mkdir('/tmp/storage/framework/sessions', 0777, true);
+    @mkdir('/tmp/storage/logs', 0777, true);
+    @mkdir('/tmp/bootstrap-cache', 0777, true);
+
     $app->useStoragePath('/tmp/storage');
+    $app->useBootstrapPath('/tmp/bootstrap-cache');
 }
 
 return $app;
