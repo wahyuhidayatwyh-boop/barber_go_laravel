@@ -24,7 +24,10 @@
         </a>
         <div class="admin-actions">
             <button class="btn-base admin">Admin</button>
-            <a href="/" class="exit"><i class="fas fa-sign-out-alt"></i> Keluar</a>
+            <form action="{{ route('logout') }}" method="POST" style="display: inline;">
+                @csrf
+                <button type="submit" class="exit" style="background: none; border: none; cursor: pointer; color: inherit; font: inherit;"><i class="fas fa-sign-out-alt"></i> Keluar</button>
+            </form>
         </div>
     </header>
 

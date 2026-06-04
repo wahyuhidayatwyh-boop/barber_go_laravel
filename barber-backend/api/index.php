@@ -12,6 +12,8 @@ $_ENV['APP_PACKAGES_CACHE'] = '/tmp/packages.php';
 $_ENV['APP_ROUTES_CACHE'] = '/tmp/routes.php';
 $_ENV['APP_SERVICES_CACHE'] = '/tmp/services.php';
 $_ENV['VIEW_COMPILED_PATH'] = '/tmp/storage/framework/views';
+putenv('SESSION_DRIVER=cookie');
+$_ENV['SESSION_DRIVER'] = 'cookie';
 
 $storagePath = '/tmp/storage';
 if (!is_dir($storagePath)) {
