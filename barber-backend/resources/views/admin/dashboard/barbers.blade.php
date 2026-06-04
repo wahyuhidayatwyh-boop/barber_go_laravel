@@ -47,7 +47,7 @@
                 @foreach($barbers as $barber)
                     <div class="product-card" data-id="{{ $barber->id }}">
                         @php $brbImg = $barber->image_path ?? $barber->image_url ?? 'assets/img/default-barber.jpg'; @endphp
-                        <img class="product-card-img" src="{{ str_starts_with($brbImg, 'data:image') ? $brbImg : asset($brbImg) }}" alt="{{ $barber->name }}" style="height: 200px; object-fit: cover; border-radius: 8px 8px 0 0;">
+                        <img class="product-card-img" src="{{ str_starts_with($brbImg, 'data:image') ? url('/api/image?type=barber&id='.$barber->id) : asset($brbImg) }}" alt="{{ $barber->name }}" style="height: 200px; object-fit: cover; border-radius: 8px 8px 0 0;">
                         <div style="padding: 1.2rem;">
                             <h3 style="margin-bottom: 0.5rem;">{{ $barber->name }}</h3>
                             <p style="font-size: 0.9rem; color: var(--text-grey); margin-bottom: 0.5rem;">{{ $barber->specialty ?? 'General Barber' }}</p>

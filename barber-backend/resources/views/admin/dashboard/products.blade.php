@@ -46,7 +46,7 @@
                             <div style="display: flex; align-items: center; gap: 1rem;">
                                 @if($service->image_path || $service->image_url)
                                     @php $srvImg = $service->image_path ?? $service->image_url ?? ''; @endphp
-                                    <img src="{{ str_starts_with($srvImg, 'data:image') ? $srvImg : asset($srvImg) }}" style="width: 60px; height: 60px; border-radius: 8px; object-fit: cover;">
+                                    <img src="{{ str_starts_with($srvImg, 'data:image') ? url('/api/image?type=service&id='.$service->id) : asset($srvImg) }}" style="width: 60px; height: 60px; border-radius: 8px; object-fit: cover;">
                                 @endif
                                 <div>
                                     <h4>{{ $service->name }}</h4>
@@ -113,7 +113,7 @@
                 @foreach($products as $product)
                     <div class="product-card" data-id="{{ $product->id }}">
                         @php $prdImg = $product->image_path ?? $product->image_url ?? $product->image ?? $product->img ?? 'assets/img/default-product.jpg'; @endphp
-                        <img class="product-card-img" src="{{ str_starts_with($prdImg, 'data:image') ? $prdImg : asset($prdImg) }}" alt="{{ $product->name ?? 'Product' }}">
+                        <img class="product-card-img" src="{{ str_starts_with($prdImg, 'data:image') ? url('/api/image?type=product&id='.$product->id) : asset($prdImg) }}" alt="{{ $product->name ?? 'Product' }}">
                         <h3>{{ $product->name ?? 'N/A' }}</h3>
                         <span class="product-price">Rp {{ number_format($product->price, 0, ',', '.') }}</span>
                         <span class="stock-status {{ $product->status == 'active' || $product->stok ? 'ready' : 'out-of-stock' }}">{{ $product->status ?? $product->stok ?? 'Ready Stock' }}</span>

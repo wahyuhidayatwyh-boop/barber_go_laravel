@@ -13,10 +13,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Schema;
 
-function profileImageUrl(Request $request, ?string $image, ?int $version = null): ?string
+function profileImageUrl(Request $request, ?string $image, ?int $version = null, $id = null): ?string
 {
     if (!$image) return null;
-    if (str_starts_with($image, 'data:image')) return $image;
+    if (str_starts_with($image, 'data:image')) return $id ? rtrim($request->getSchemeAndHttpHost(), '/') . "/api/image?type=profile&id={$id}" : $image;
     if (preg_match('/^https?:\/\//i', $image)) return $image;
 
     $baseUrl = rtrim($request->getSchemeAndHttpHost(), '/');
@@ -29,10 +29,10 @@ function profileImageUrl(Request $request, ?string $image, ?int $version = null)
     return $version ? $url . '?v=' . $version : $url;
 }
 
-function serviceImageUrl(Request $request, ?string $image): ?string
+function serviceImageUrl(Request $request, ?string $image, $id = null): ?string
 {
     if (!$image) return null;
-    if (str_starts_with($image, 'data:image')) return $image;
+    if (str_starts_with($image, 'data:image')) return $id ? rtrim($request->getSchemeAndHttpHost(), '/') . "/api/image?type=service&id={$id}" : $image;
     if (preg_match('/^https?:\/\//i', $image)) return $image;
 
     $baseUrl = rtrim($request->getSchemeAndHttpHost(), '/');
@@ -44,10 +44,10 @@ function serviceImageUrl(Request $request, ?string $image): ?string
     return $baseUrl . '/' . $cleanPath;
 }
 
-function productImageUrl(Request $request, ?string $image): ?string
+function productImageUrl(Request $request, ?string $image, $id = null): ?string
 {
     if (!$image) return null;
-    if (str_starts_with($image, 'data:image')) return $image;
+    if (str_starts_with($image, 'data:image')) return $id ? rtrim($request->getSchemeAndHttpHost(), '/') . "/api/image?type=product&id={$id}" : $image;
     if (preg_match('/^https?:\/\//i', $image)) return $image;
 
     $baseUrl = rtrim($request->getSchemeAndHttpHost(), '/');
@@ -59,10 +59,10 @@ function productImageUrl(Request $request, ?string $image): ?string
     return $baseUrl . '/' . $cleanPath;
 }
 
-function bannerImageUrl(Request $request, ?string $image): ?string
+function bannerImageUrl(Request $request, ?string $image, $id = null): ?string
 {
     if (!$image) return null;
-    if (str_starts_with($image, 'data:image')) return $image;
+    if (str_starts_with($image, 'data:image')) return $id ? rtrim($request->getSchemeAndHttpHost(), '/') . "/api/image?type=banner&id={$id}" : $image;
     if (preg_match('/^https?:\/\//i', $image)) return $image;
 
     $baseUrl = rtrim($request->getSchemeAndHttpHost(), '/');
@@ -79,7 +79,40 @@ function bannerImageUrl(Request $request, ?string $image): ?string
 |--------------------------------------------------------------------------
 */
 
+// STREAM BASE64 GAMBAR LANGSUNG - MENGHINDARI LIMIT 4.5MB VERCEL PAYLOAD!
+Route::get('/image', function (Request $request) {
+    $type = $request->query('type');
+    $id = $request->query('id');
 
+    $modelClass = match($type) {
+        'barber' => \App\Models\Barber::class,
+        'product' => \App\Models\Product::class,
+        'service' => \App\Models\Service::class,
+        'banner' => \App\Models\Banner::class,
+        'profile' => \App\Models\User::class,
+        default => null
+    };
+
+    if (!$modelClass) return response('Invalid type', 404);
+
+    $record = $modelClass::find($id);
+    if (!$record) return response('Not found', 404);
+
+    $imageField = $type === 'profile' ? $record->image : ($record->image_path ?? $record->image_url ?? $record->image);
+    if (!$imageField || !str_starts_with($imageField, 'data:image')) {
+        return response('No base64 image', 404);
+    }
+
+    if (preg_match('/^data:(image\/[a-zA-Z0-9\-\+]+);base64,(.+)$/', $imageField, $matches)) {
+        $mime = $matches[1];
+        $data = base64_decode($matches[2]);
+        return response($data)
+            ->header('Content-Type', $mime)
+            ->header('Cache-Control', 'public, max-age=86400');
+    }
+
+    return response('Invalid format', 404);
+});
 Route::post('/update-profile', function (Request $request) {
     try {
         $user = \App\Models\User::find($request->user_id);
@@ -112,7 +145,7 @@ Route::post('/update-profile', function (Request $request) {
                 'email' => $user->email,
                 'phone' => $user->phone,
                 'image' => $user->image,
-                'image_url' => profileImageUrl($request, $user->image, optional($user->updated_at)->timestamp),
+                'image_url' => profileImageUrl($request, $user->image, optional($user->updated_at)->timestamp, $user->id),
             ]
         ]);
     } catch (\Exception $e) {
@@ -133,7 +166,7 @@ Route::get('/home-data', function (Request $request) {
     $services = Schema::hasTable('services')
         ? Service::all()->map(function ($service) use ($request) {
             $service->price = (int) ($service->price ?? 0);
-            $service->image_url = serviceImageUrl($request, $service->image_url);
+            $service->image_url = serviceImageUrl($request, $service->image_url, $service->id);
             return $service;
         })
         : collect();
@@ -146,7 +179,7 @@ Route::get('/home-data', function (Request $request) {
         }
         $products = $productQuery->orderByDesc('id')->get()->map(function ($product) use ($request) {
             $product->price = (int) ($product->price ?? 0);
-            $product->image_url = productImageUrl($request, $product->image_url);
+            $product->image_url = productImageUrl($request, $product->image_url, $product->id);
             return $product;
         });
     }
@@ -160,7 +193,7 @@ Route::get('/home-data', function (Request $request) {
         $banners = $bannerQuery->get()->map(function ($banner) use ($request) {
             // Always regenerate image_url from image_path to avoid stale localhost URLs
             $imageSrc = $banner->image_path ?? $banner->image_url ?? null;
-            $banner->image_url = bannerImageUrl($request, $imageSrc);
+            $banner->image_url = bannerImageUrl($request, $imageSrc, $banner->id);
             return $banner;
         });
     }
@@ -184,7 +217,9 @@ Route::get('/barbers', function (Request $request) {
     $barbers = Barber::all()->map(function ($barber) use ($request) {
         $baseUrl = rtrim($request->getSchemeAndHttpHost(), '/');
         $imageSrc = $barber->image_path ?? $barber->image_url ?? null;
-        if ($imageSrc && !str_starts_with($imageSrc, 'data:image') && !preg_match('/^https?:\/\//i', $imageSrc)) {
+        if ($imageSrc && str_starts_with($imageSrc, 'data:image')) {
+            $barber->image_url = $baseUrl . "/api/image?type=barber&id={$barber->id}";
+        } elseif ($imageSrc && !preg_match('/^https?:\/\//i', $imageSrc)) {
             $cleanPath = ltrim($imageSrc, '/');
             if (!str_starts_with($cleanPath, 'storage/')) {
                 $cleanPath = 'storage/barbers/' . basename($cleanPath);
@@ -476,7 +511,7 @@ Route::post('/login', function (Request $request) {
             'email' => $user->email,
             'phone' => $user->phone,
             'image' => $user->image,
-            'image_url' => profileImageUrl($request, $user->image, optional($user->updated_at)->timestamp),
+            'image_url' => profileImageUrl($request, $user->image, optional($user->updated_at)->timestamp, $user->id),
         ],
     ], 200);
 });

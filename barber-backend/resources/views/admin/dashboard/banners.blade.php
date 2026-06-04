@@ -43,7 +43,7 @@
                 @foreach($banners as $banner)
                     <div class="product-card" data-id="{{ $banner->id }}">
                         @php $bnrImg = $banner->image_path ?? $banner->image_url ?? 'assets/img/default-banner.jpg'; @endphp
-                        <img class="product-card-img" src="{{ str_starts_with($bnrImg, 'data:image') ? $bnrImg : asset($bnrImg) }}" alt="{{ $banner->title }}" style="height: 150px; object-fit: cover;">
+                        <img class="product-card-img" src="{{ str_starts_with($bnrImg, 'data:image') ? url('/api/image?type=banner&id='.$banner->id) : asset($bnrImg) }}" alt="{{ $banner->title }}" style="height: 150px; object-fit: cover;">
                         <h3>{{ $banner->title }}</h3>
                         <p style="font-size: 0.9rem; color: var(--text-grey); margin-bottom: 10px;">{{ Str::limit($banner->description, 50) }}</p>
                         <span class="stock-status {{ $banner->is_active ? 'ready' : 'out-of-stock' }}">{{ $banner->is_active ? 'Aktif' : 'Non-aktif' }}</span>
