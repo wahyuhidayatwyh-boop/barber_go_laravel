@@ -19,7 +19,7 @@
 
     <header>
       <a href="#" class="logo">
-        <img src="/assets/img/logo.png" alt="Logo Barber Go">
+        <img src="/assets/img/LOGOBARBERGO.png" alt="Logo BarberGo">
         <div class="logo-text-container">
             <span class="cukur-text">BARBER</span><span class="men-text">GO</span>
         </div>
@@ -194,7 +194,7 @@
                 <div class="produk-container">
                     
                    <div class="produk-card">
-                        <img src="/assets/img/pom.jpg" alt="Cream Pomade Barber Go"> 
+                        <img src="/assets/img/pom.jpg" alt="Cream Pomade BarberGo"> 
                         <h3>Premium Pomade</h3>
                         <span class="product-price">Rp 65.000</span>
                         <span class="stock-status">Ready Stock</span>
@@ -234,7 +234,7 @@
         <div class="footer-grid">
             <div class="footer-about">
                     <a href="#" class="footer-logo">
-                        <img src="/assets/img/logo.png" alt="Logo CUKURMEN">
+                        <img src="/assets/img/LOGOBARBERGO.png" alt="Logo BarberGo">
                         <div class="logo-text-container"><span class="cukur-text">BARBER</span><span class="men-text">GO</span></div>
                     </a>
                     <p>BARBER GO BARBERSHOP</p>
@@ -274,7 +274,7 @@
                 </div>
                 <p><i class="fas fa-map-marker-alt"></i>Jl. Profesor DR. HR Boenyamin No.152, Sumampir Wetan, Pabuaran, Kec. Purwokerto Utara, Kabupaten Banyumas, Jawa Tengah 53124</p>
                 <p><i class="fab fa-whatsapp"></i>085228938097</p>
-                <p><i class="fab fa-instagram"></i> cukurmen.barber</p>
+                <p><i class="fab fa-instagram"></i> barbergo.id</p>
                 
             </div>
         </div>

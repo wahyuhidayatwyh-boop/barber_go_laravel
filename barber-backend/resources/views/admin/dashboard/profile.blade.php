@@ -27,7 +27,7 @@
         </div>
         <div class="form-group">
             <label>Email Login</label>
-            <span class="view-only-text" style="color: var(--text-dark-contrast); font-weight: 400;" id="profilEmailAdmin">{{ $user->email ?? 'admin@cukurmen.com' }}</span>
+            <span class="view-only-text" style="color: var(--text-dark-contrast); font-weight: 400;" id="profilEmailAdmin">{{ $user->email ?? 'admin@barbergo.id' }}</span>
         </div>
         <p style="font-size: 0.9rem; color: var(--text-grey); margin-top: 15px;">Hubungi Super Admin untuk melakukan perubahan pada data di atas.</p>
     </div>

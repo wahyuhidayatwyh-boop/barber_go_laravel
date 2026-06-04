@@ -19,7 +19,7 @@
 
     <header class="admin-header">
         <a href="#" class="admin-logo">
-            <img src="/assets/img/logoa.png" alt="Logo Cukur Men">
+            <img src="/assets/img/LOGOBARBERGO.png" alt="Logo BarberGo">
             <div class="logo-text-container"><span class="cukur-text">BARBER</span><span class="men-text">GO</span></div>
         </a>
         <div class="admin-actions">
