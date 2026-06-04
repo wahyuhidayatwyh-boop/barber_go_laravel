@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Schema;
 function profileImageUrl(Request $request, ?string $image, ?int $version = null): ?string
 {
     if (!$image) return null;
+    if (str_starts_with($image, 'data:image')) return $image;
     if (preg_match('/^https?:\/\//i', $image)) return $image;
 
     $baseUrl = rtrim($request->getSchemeAndHttpHost(), '/');
@@ -31,6 +32,7 @@ function profileImageUrl(Request $request, ?string $image, ?int $version = null)
 function serviceImageUrl(Request $request, ?string $image): ?string
 {
     if (!$image) return null;
+    if (str_starts_with($image, 'data:image')) return $image;
     if (preg_match('/^https?:\/\//i', $image)) return $image;
 
     $baseUrl = rtrim($request->getSchemeAndHttpHost(), '/');
@@ -45,6 +47,7 @@ function serviceImageUrl(Request $request, ?string $image): ?string
 function productImageUrl(Request $request, ?string $image): ?string
 {
     if (!$image) return null;
+    if (str_starts_with($image, 'data:image')) return $image;
     if (preg_match('/^https?:\/\//i', $image)) return $image;
 
     $baseUrl = rtrim($request->getSchemeAndHttpHost(), '/');
@@ -59,6 +62,7 @@ function productImageUrl(Request $request, ?string $image): ?string
 function bannerImageUrl(Request $request, ?string $image): ?string
 {
     if (!$image) return null;
+    if (str_starts_with($image, 'data:image')) return $image;
     if (preg_match('/^https?:\/\//i', $image)) return $image;
 
     $baseUrl = rtrim($request->getSchemeAndHttpHost(), '/');
@@ -184,12 +188,14 @@ Route::get('/barbers', function (Request $request) {
     $barbers = Barber::all()->map(function ($barber) use ($request) {
         $baseUrl = rtrim($request->getSchemeAndHttpHost(), '/');
         $imageSrc = $barber->image_path ?? $barber->image_url ?? null;
-        if ($imageSrc && !preg_match('/^https?:\/\//i', $imageSrc)) {
+        if ($imageSrc && !str_starts_with($imageSrc, 'data:image') && !preg_match('/^https?:\/\//i', $imageSrc)) {
             $cleanPath = ltrim($imageSrc, '/');
             if (!str_starts_with($cleanPath, 'storage/')) {
                 $cleanPath = 'storage/barbers/' . basename($cleanPath);
             }
             $barber->image_url = $baseUrl . '/' . $cleanPath;
+        } else {
+            $barber->image_url = $imageSrc;
         }
         return [
             'id' => $barber->id,

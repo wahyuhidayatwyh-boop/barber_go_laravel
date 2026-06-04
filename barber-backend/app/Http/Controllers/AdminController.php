@@ -926,14 +926,17 @@ class AdminController extends Controller
     private function handleImageUpload($file, $folder)
     {
         try {
-            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-            $path = $file->storeAs($folder, $filename, 'public');
+            // In Serverless Vercel, the /tmp filesystem is ephemeral and pictures disappear.
+            // Converting to base64 and saving into TEXT field solves it instantly without external storage like S3.
+            $mime = $file->getMimeType();
+            $data = file_get_contents($file->getRealPath());
+            $base64 = base64_encode($data);
             
-            \Log::info("Image uploaded successfully: {$path} in folder {$folder}");
+            \Log::info("Image converted to base64 successfully for folder {$folder}");
             
-            return 'storage/' . $path;
+            return 'data:' . $mime . ';base64,' . $base64;
         } catch (\Exception $e) {
-            \Log::error("Error uploading image to {$folder}: " . $e->getMessage());
+            \Log::error("Error processing image to base64 for {$folder}: " . $e->getMessage());
             throw $e;
         }
     }
