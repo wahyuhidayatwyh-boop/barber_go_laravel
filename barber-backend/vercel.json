@@ -3,17 +3,28 @@
     "builds": [
         {
             "src": "api/index.php",
-            "use": "vercel-php@0.9.0"
+            "use": "vercel-php@0.9.0",
+            "config": {
+                "buildCommand": "npm install && npm run build"
+            }
         },
         {
-            "src": "/public/**",
+            "src": "public/**",
             "use": "@vercel/static"
         }
     ],
     "routes": [
         {
-            "src": "/(css|js|images|build)/(.*)",
+            "src": "/build/(.*)",
+            "dest": "/public/build/$1"
+        },
+        {
+            "src": "/(css|js|images|fonts)/(.*)",
             "dest": "/public/$1/$2"
+        },
+        {
+            "src": "/(.*\\.(ico|png|jpg|jpeg|svg|webp|gif|woff|woff2|ttf|eot))",
+            "dest": "/public/$1"
         },
         {
             "src": "/(.*)",
