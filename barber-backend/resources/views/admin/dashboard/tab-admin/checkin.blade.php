@@ -498,8 +498,10 @@
                         alert(data.message || 'Booking selesai!');
                         // Refresh data after updating status
                         const selectedDate = document.getElementById('date-selector-input').value;
-
-                        (selectedDate);
+                        loadDashboardData(selectedDate);
+                        // Refresh current tab
+                        const activeTab = document.querySelector('.status-tab-btn.active');
+                        if (activeTab) showBookingsByStatus(activeTab.getAttribute('data-status'));
                     } else {
                         alert(data.message || 'Gagal menyelesaikan booking.');
                     }
@@ -525,8 +527,10 @@
                             alert(data.message || 'Booking berhasil dibatalkan!');
                             // Refresh data after cancellation
                             const selectedDate = document.getElementById('date-selector-input').value;
-
-                            (selectedDate);
+                            loadDashboardData(selectedDate);
+                            // Refresh current tab
+                            const activeTab = document.querySelector('.status-tab-btn.active');
+                            if (activeTab) showBookingsByStatus(activeTab.getAttribute('data-status'));
                         } else {
                             alert(data.message || 'Gagal membatalkan booking.');
                         }

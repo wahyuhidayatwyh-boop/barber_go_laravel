@@ -16,7 +16,10 @@ use Illuminate\Support\Facades\Schema;
 function profileImageUrl(Request $request, ?string $image, ?int $version = null, $id = null): ?string
 {
     if (!$image) return null;
-    if (str_starts_with($image, 'data:image')) return $id ? rtrim($request->getSchemeAndHttpHost(), '/') . "/api/image?type=profile&id={$id}" : $image;
+    if (str_starts_with($image, 'data:image')) {
+        $url = $id ? rtrim($request->getSchemeAndHttpHost(), '/') . "/api/image?type=profile&id={$id}" : $image;
+        return ($id && $version) ? $url . "&v={$version}" : $url;
+    }
     if (preg_match('/^https?:\/\//i', $image)) return $image;
 
     $baseUrl = rtrim($request->getSchemeAndHttpHost(), '/');
@@ -157,7 +160,7 @@ Route::post('/update-profile', function (Request $request) {
 Route::get('/home-data', function (Request $request) {
     try {
         $settings = DB::table('barbershop_settings')->first();
-        $totalQueue = Booking::where('status', 'waiting')->whereDate('booking_date', now())->count();
+        $totalQueue = Booking::whereIn('status', ['pending', 'waiting'])->whereDate('booking_date', now())->count();
 
         // Mapping services untuk menambahkan full URL pada image_url
         $services = Service::all()->map(function ($service) use ($request) {
@@ -450,10 +453,11 @@ Route::get('/booking-history', function (Request $request) {
 // 7. API BATALKAN BOOKING
 Route::delete('/bookings/{id}', function ($id) {
     try {
-        Booking::where('id', $id)->delete();
+        $booking = Booking::findOrFail($id);
+        $booking->update(['status' => 'cancelled']);
         return response()->json(['status' => 'success', 'message' => 'Booking dibatalkan']);
     } catch (\Exception $e) {
-        return response()->json(['status' => 'error', 'message' => 'Gagal membatalkan'], 400);
+        return response()->json(['status' => 'error', 'message' => 'Gagal membatalkan: ' . $e->getMessage()], 400);
     }
 });
 

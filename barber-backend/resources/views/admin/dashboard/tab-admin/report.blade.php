@@ -196,8 +196,34 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
+    // Initialize chart type tabs
+    const chartTabButtons = document.querySelectorAll('.chart-tab-btn');
+    chartTabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Remove active class from all buttons
+            chartTabButtons.forEach(btn => btn.classList.remove('active'));
+            // Add active class to clicked button
+            this.classList.add('active');
+            
+            // Get the chart type
+            const chartType = this.getAttribute('data-chart-type');
+            
+            // Update the chart with the selected type
+            if (loadReportData.revenue && loadReportData.bookings) {
+                initRevenueChart(loadReportData.revenue, loadReportData.bookings, chartType);
+            } else {
+                // If data is not loaded yet, use empty data
+                initRevenueChart(null, null, chartType);
+            }
+        });
+    });
+    
     // Update tanggal
     updateLastUpdatedTime();
+    
+    // Initialize real-time features
+    setupRealTimeUpdates();
+    setupAutomaticRefresh();
 });
 
 function loadDashboardData(date) {
@@ -232,12 +258,20 @@ function loadReportData() {
     fetch(`{{ route("admin.dashboard.data") }}?date=${reportDate}`)
         .then(response => response.json())
         .then(data => {
-            // Store revenue data in a variable for later use
+            // Store revenue and bookings data in variables for later use
             loadReportData.revenue = data.revenue;
+            loadReportData.bookings = data.todaysBookings;
     
             updateReportSummary(data.summary, data.revenue);
             updatePerformanceReport(data.todaysBookings, data.revenue);
             updateTrendReport(data.todaysBookings, data.summary, data.revenue);
+            
+            // Determine which chart type is currently active and update the chart
+            const activeChartTab = document.querySelector('.chart-tab-btn.active');
+            const chartType = activeChartTab ? activeChartTab.getAttribute('data-chart-type') : 'barber-revenue';
+            
+            // Initialize or update the chart
+            initRevenueChart(data.revenue, data.todaysBookings, chartType);
         })
         .catch(error => {
             console.error('Error:', error);
@@ -653,63 +687,7 @@ function initRevenueChart(revenueData, bookingsData, chartType = 'barber-revenue
     });
 }
 
-// Initialize chart type tabs
-document.addEventListener('DOMContentLoaded', function() {
-    const chartTabButtons = document.querySelectorAll('.chart-tab-btn');
-    chartTabButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            // Remove active class from all buttons
-            chartTabButtons.forEach(btn => btn.classList.remove('active'));
-            // Add active class to clicked button
-            this.classList.add('active');
-            
-            // Get the chart type
-            const chartType = this.getAttribute('data-chart-type');
-            
-            // Update the chart with the selected type
-            if (loadReportData.revenue && loadReportData.bookings) {
-                initRevenueChart(loadReportData.revenue, loadReportData.bookings, chartType);
-            } else {
-                // If data is not loaded yet, use empty data
-                initRevenueChart(null, null, chartType);
-            }
-        });
-    });
-    
-    // Initialize real-time features
-    setupRealTimeUpdates();
-    setupAutomaticRefresh();
-});
 
-// Update the loadReportData function to include chart initialization
-function loadReportData() {
-    const reportType = document.getElementById('tipe-laporan').value;
-    const reportDate = document.getElementById('tanggal-laporan').value;
-    
-    // Ambil data dari API
-    fetch(`{{ route("admin.dashboard.data") }}?date=${reportDate}`)
-        .then(response => response.json())
-        .then(data => {
-            // Store revenue and bookings data in variables for later use
-            loadReportData.revenue = data.revenue;
-            loadReportData.bookings = data.todaysBookings;
-    
-            updateReportSummary(data.summary, data.revenue);
-            updatePerformanceReport(data.todaysBookings, data.revenue);
-            updateTrendReport(data.todaysBookings, data.summary, data.revenue);
-            
-            // Determine which chart type is currently active and update the chart
-            const activeChartTab = document.querySelector('.chart-tab-btn.active');
-            const chartType = activeChartTab ? activeChartTab.getAttribute('data-chart-type') : 'barber-revenue';
-            
-            // Initialize or update the chart
-            initRevenueChart(data.revenue, data.todaysBookings, chartType);
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Gagal memuat data laporan');
-        });
-}
 </script>
 
 <style>

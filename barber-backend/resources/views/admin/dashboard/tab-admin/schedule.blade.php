@@ -91,6 +91,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Update tanggal
     updateLastUpdatedTime();
+    
+    // Setup real-time updates dan auto-refresh
+    setupRealTimeUpdates();
+    setupAutomaticRefresh();
 });
 
 function loadDashboardData(date) {
@@ -293,11 +297,7 @@ function setupAutomaticRefresh() {
     }, 30000); // 30 seconds
 }
 
-// Initialize real-time features
-document.addEventListener('DOMContentLoaded', function() {
-    setupRealTimeUpdates();
-    setupAutomaticRefresh();
-});
+
 </script>
 
 <style>

@@ -46,8 +46,20 @@
                     <input type="tel" id="nomor-hp" placeholder="Nomor HP pelanggan">
                 </div>
                 <div class="form-group">
+                    <label for="barber-select">Barber</label>
+                    <select id="barber-select">
+                        <option value="">Pilih Barber</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="layanan-select">Layanan</label>
+                    <select id="layanan-select">
+                        <option value="">Pilih Layanan</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label for="tanggal-walkin">Pilih Tanggal</label>
-                    <input type="date" id="tanggal-walkin" value="" style="width: 100%; margin-bottom: 15px;">
+                    <input type="date" id="tanggal-walkin" value="{{ date('Y-m-d') }}" style="width: 100%; margin-bottom: 15px;">
                     <button type="button" class="btn-base" id="loadTimeSlotsBtn" style="width: 100%;">Muat Jam Tersedia</button>
                 </div>
                 
@@ -57,18 +69,6 @@
                         <option value="">Pilih jam setelah memilih tanggal, barber, dan layanan</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label for="barber">Barber</label>
-                    <select id="barber-select">
-                        <option value="">Pilih Barber</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="layanan">Layanan</label>
-                    <select id="layanan-select">
-                        <option value="">Pilih Layanan</option>
-                    </select>
-                </div>
                 <button class="btn-add-walkin" id="addWalkinButton"><i class="fas fa-plus"></i> Tambah Walk-in</button>
             </div>
         </div>
@@ -76,32 +76,33 @@
 </div>
 
 <script>
-// JavaScript untuk halaman admin utama dan semua sub-tab
+// JavaScript untuk halaman Walk-in
 document.addEventListener('DOMContentLoaded', function() {
-    // Ambil data dasbor dari API
+    // Load summary data
     const currentDate = document.getElementById('date-selector-input').value;
     loadDashboardData(currentDate);
     
-    // Event listener untuk tombol refresh
-    const refreshBtn = document.getElementById('refreshButton');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', function() {
-            const selectedDate = document.getElementById('date-selector-input').value;
-            loadDashboardData(selectedDate);
-        });
+    // Load data untuk dropdown barber dan layanan
+    loadWalkInData();
+    
+    // Update waktu terakhir diperbarui
+    updateLastUpdatedTime();
+    
+    // Event listener untuk tombol muat jam tersedia
+    const loadTimeSlotsBtn = document.getElementById('loadTimeSlotsBtn');
+    if (loadTimeSlotsBtn) {
+        loadTimeSlotsBtn.addEventListener('click', loadAvailableTimeSlots);
     }
     
-    // Tambahkan event listener ke tombol tambah walk-in
+    // Event listener untuk tombol tambah walk-in
     const addWalkinButton = document.getElementById('addWalkinButton');
     if (addWalkinButton) {
         addWalkinButton.addEventListener('click', addWalkInBooking);
     }
     
-    // Load data untuk dropdown
-    loadWalkInData();
-    
-    // Update tanggal
-    updateLastUpdatedTime();
+    // Setup real-time updates dan auto-refresh
+    setupRealTimeUpdates();
+    setupAutomaticRefresh();
 });
 
 function loadDashboardData(date) {
@@ -113,7 +114,6 @@ function loadDashboardData(date) {
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Terjadi kesalahan saat memuat data dashboard.');
         });
 }
 
@@ -141,7 +141,6 @@ function addWalkInBooking() {
         return;
     }
     
-    // Data untuk dikirim - booking baru otomatis masuk ke status 'pending' dan akan muncul di halaman check-in
     const bookingData = {
         customer_name: customerName,
         phone: phone,
@@ -150,8 +149,13 @@ function addWalkInBooking() {
         barber_id: barberId,
         service_id: serviceId,
         payment_method: 'Walk-in',
-        status: 'pending'  // New walk-in bookings start with 'pending' status to appear in check-in queue
+        status: 'pending'
     };
+    
+    // Disable button selama proses
+    const btn = document.getElementById('addWalkinButton');
+    btn.disabled = true;
+    btn.textContent = 'Memproses...';
     
     fetch('{{ route("admin.bookings.create") }}', {
         method: 'POST',
@@ -162,29 +166,28 @@ function addWalkInBooking() {
         body: JSON.stringify(bookingData)
     })
     .then(response => {
-        // Periksa apakah response berhasil sebelum mencoba menguraikan JSON
         if (!response.ok) {
-            // Jika status bukan 2xx, tangani sebagai error
-            throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json().then(err => { throw new Error(err.error || `HTTP error! status: ${response.status}`); });
         }
         return response.json();
     })
     .then(data => {
-        alert('Walk-in booking berhasil ditambahkan dan otomatis masuk ke antrian check-in!');
+        alert(`Walk-in booking berhasil ditambahkan!\nKode Booking: ${data.booking_id || '-'}\nBooking otomatis masuk ke antrian check-in.`);
         // Reset form
         document.getElementById('nama-pelanggan').value = '';
         document.getElementById('nomor-hp').value = '';
-        document.getElementById('tanggal-walkin').value = '';
-        document.getElementById('jam-tersedia').value = '';
-        document.getElementById('barber-select').value = '';
-        document.getElementById('layanan-select').value = '';
+        document.getElementById('jam-tersedia').innerHTML = '<option value="">Pilih jam setelah memilih tanggal, barber, dan layanan</option>';
         
-        // Load ulang data
+        // Refresh summary
         loadDashboardData(date);
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Terjadi kesalahan saat menambahkan walk-in booking. Silakan coba lagi.');
+        alert('Terjadi kesalahan: ' + error.message);
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-plus"></i> Tambah Walk-in';
     });
 }
 
@@ -199,13 +202,9 @@ function loadAvailableTimeSlots() {
         return;
     }
 
-    console.log("Memuat jam tersedia untuk tanggal:", date, "barber:", barberId, "service:", serviceId);
-
-    // Reset dropdown jam
     const jamTersediaSelect = document.getElementById('jam-tersedia');
     jamTersediaSelect.innerHTML = '<option value="">Memuat jam tersedia...</option>';
     
-    // Fetch available time slots from the Laravel API
     fetch(`{{ route("admin.bookings.time-slots") }}?date=${date}&barber_id=${barberId}&service_id=${serviceId}`, {
         method: 'GET',
         headers: {
@@ -214,28 +213,23 @@ function loadAvailableTimeSlots() {
         }
     })
     .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
+        if (!response.ok) throw new Error('Network response was not ok');
         return response.json();
     })
     .then(data => {
-        // Kosongkan dropdown
         jamTersediaSelect.innerHTML = '<option value="">Pilih jam tersedia</option>';
 
-        if (data.availableSlots.length === 0) {
+        if (!data.availableSlots || data.availableSlots.length === 0) {
             jamTersediaSelect.innerHTML = '<option value="">Tidak ada jam tersedia</option>';
             return;
         }
 
-        // Tambahkan setiap slot waktu ke dropdown
         data.availableSlots.forEach(time => {
             const option = document.createElement('option');
             option.value = time;
             option.textContent = time;
             jamTersediaSelect.appendChild(option);
         });
-
     })
     .catch(error => {
         console.error("Gagal memuat jam tersedia:", error);
@@ -243,7 +237,7 @@ function loadAvailableTimeSlots() {
     });
 }
 
-// Fungsi untuk mengisi dropdown barber dan layanan saat halaman walk-in dimuat
+// Fungsi untuk mengisi dropdown barber dan layanan
 function loadWalkInData() {
     // Load barbers
     fetch('{{ route("admin.barbers") }}')
@@ -253,10 +247,12 @@ function loadWalkInData() {
             if (barberSelect) {
                 barberSelect.innerHTML = '<option value="">Pilih Barber</option>';
                 barbers.forEach(barber => {
-                    const option = document.createElement('option');
-                    option.value = barber.id;
-                    option.textContent = barber.name;
-                    barberSelect.appendChild(option);
+                    if (barber.status === 'active' || !barber.status) {
+                        const option = document.createElement('option');
+                        option.value = barber.id;
+                        option.textContent = barber.name;
+                        barberSelect.appendChild(option);
+                    }
                 });
             }
         })
@@ -272,7 +268,7 @@ function loadWalkInData() {
                 services.forEach(service => {
                     const option = document.createElement('option');
                     option.value = service.id;
-                    option.textContent = `${service.name} - Rp ${service.price.toLocaleString('id-ID')}`;
+                    option.textContent = `${service.name} - Rp ${Number(service.price).toLocaleString('id-ID')}`;
                     serviceSelect.appendChild(option);
                 });
             }
@@ -290,99 +286,30 @@ function updateLastUpdatedTime() {
     document.getElementById('lastUpdate').textContent = 'Terakhir diperbarui: ' + timeString;
 }
 
-// Setup real-time updates using Laravel Echo
+// Setup real-time updates menggunakan Laravel Echo
 function setupRealTimeUpdates() {
-    // Listen for booking status updates
     if (typeof Echo !== 'undefined') {
         Echo.channel('bookings')
             .listen('BookingStatusUpdated', (e) => {
-                console.log('Booking status updated:', e);
-                
-                // Update dashboard data
                 const currentDate = document.getElementById('date-selector-input').value;
                 loadDashboardData(currentDate);
-                
-                // Update the last updated time
                 updateLastUpdatedTime();
             });
     }
 }
 
-// Set up automatic refresh every 30 seconds
+// Auto-refresh setiap 30 detik
 function setupAutomaticRefresh() {
     setInterval(() => {
         const currentDate = document.getElementById('date-selector-input').value;
         loadDashboardData(currentDate);
-    }, 30000); // 30 seconds
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    // Ambil data dasbor dari API
-    const currentDate = document.getElementById('date-selector-input').value;
-    loadDashboardData(currentDate);
-    
-    // Event listener untuk tombol refresh
-    const refreshBtn = document.getElementById('refreshButton');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', function() {
-            const selectedDate = document.getElementById('date-selector-input').value;
-            loadDashboardData(selectedDate);
-        });
-    }
-    
-    // Tambahkan event listener ke tombol tambah walk-in
-    const addWalkinButton = document.getElementById('addWalkinButton');
-    if (addWalkinButton) {
-        addWalkinButton.addEventListener('click', addWalkInBooking);
-    }
-    
-    // Tambahkan event listener ke tombol muat jam tersedia
-    const loadTimeSlotsBtn = document.getElementById('loadTimeSlotsBtn');
-    if (loadTimeSlotsBtn) {
-        loadTimeSlotsBtn.addEventListener('click', loadAvailableTimeSlots);
-    }
-    
-    // Load data untuk dropdown
-    loadWalkInData();
-    
-    // Update tanggal
-    updateLastUpdatedTime();
-    
-    // Setup real-time updates using Laravel Echo
-    setupRealTimeUpdates();
-    setupAutomaticRefresh();
-});
-
-// Setup real-time updates using Laravel Echo
-function setupRealTimeUpdates() {
-    // Listen for booking status updates
-    if (typeof Echo !== 'undefined') {
-        Echo.channel('bookings')
-            .listen('BookingStatusUpdated', (e) => {
-                console.log('Booking status updated:', e);
-                
-                // Update dashboard data
-                const currentDate = document.getElementById('date-selector-input').value;
-                loadDashboardData(currentDate);
-                
-                // Update the last updated time
-                updateLastUpdatedTime();
-            });
-    }
-}
-
-// Set up automatic refresh every 30 seconds
-function setupAutomaticRefresh() {
-    setInterval(() => {
-        const currentDate = document.getElementById('date-selector-input').value;
-        loadDashboardData(currentDate);
-    }, 30000); // 30 seconds
+    }, 30000);
 }
 </script>
 
 <style>
 .cukur {
-    color: #4A90E2; /* Blue color for cukur count */
+    color: #4A90E2;
 }
 </style>
 
