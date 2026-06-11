@@ -240,7 +240,7 @@ function loadAvailableTimeSlots() {
 // Fungsi untuk mengisi dropdown barber dan layanan
 function loadWalkInData() {
     // Load barbers
-    fetch('{{ route("admin.barbers") }}')
+    fetch('{{ route("admin.barbers.index") }}')
         .then(response => response.json())
         .then(barbers => {
             const barberSelect = document.getElementById('barber-select');

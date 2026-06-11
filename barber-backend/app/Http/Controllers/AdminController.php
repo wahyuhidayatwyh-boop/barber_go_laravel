@@ -74,11 +74,29 @@ class AdminController extends Controller
                                 ->with(['user', 'service', 'barber'])
                                 ->get()
                                 ->map(function ($booking) {
+                                    $brbImg = $booking->barber ? ($booking->barber->image_path ?? $booking->barber->image_url ?? '') : '';
+                                    $barberImage = '';
+                                    if ($brbImg) {
+                                        $barberImage = str_starts_with($brbImg, 'data:image') 
+                                            ? url('/api/image?type=barber&id='.$booking->barber->id) 
+                                            : asset($brbImg);
+                                    }
+                                    
+                                    $usrImg = $booking->user ? ($booking->user->image ?? '') : '';
+                                    $userImage = '';
+                                    if ($usrImg) {
+                                        $userImage = str_starts_with($usrImg, 'data:image') 
+                                            ? url('/api/image?type=profile&id='.$booking->user->id) 
+                                            : (preg_match('/^https?:\/\//i', $usrImg) ? $usrImg : asset($usrImg));
+                                    }
+
                                     return [
                                         'id' => $booking->booking_id,
                                         'userName' => $booking->user ? $booking->user->name : 'Unknown User',
+                                        'userImage' => $userImage,
                                         'serviceName' => $booking->service ? $booking->service->name : 'Unknown Service',
                                         'barberName' => $booking->barber ? $booking->barber->name : 'Unknown Barber',
+                                        'barberImage' => $barberImage,
                                         'totalPrice' => $booking->total_price,
                                         'time' => $booking->booking_time,
                                         'status' => $booking->status,

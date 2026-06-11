@@ -176,10 +176,15 @@ function displayScheduleData(bookings, statusFilter = 'all') {
         // Urutkan berdasarkan waktu
         barberBookings.sort((a, b) => a.time.localeCompare(b.time));
         
+        // Ambil gambar barber dari booking pertama jika ada
+        const barberImg = (barberBookings[0] && barberBookings[0].barberImage) 
+            ? barberBookings[0].barberImage 
+            : '/assets/img/barber-icon.png';
+        
         html += `
         <div class="barber-column">
             <div class="barber-name">
-                <img class="barber-icon" src="/assets/img/barber-icon.png" alt="Barber">
+                <img class="barber-icon" src="${barberImg}" alt="Barber">
                 <span>${barberName}</span>
             </div>
             <div class="subtext">${barberBookings.length} booking ${statusFilter !== 'all' ? getStatusText(statusFilter) : ''} hari ini</div>
@@ -215,16 +220,22 @@ function displayScheduleData(bookings, statusFilter = 'all') {
                     statusText = 'Status Tidak Diketahui';
             }
             
+            // Customer profile image fallback to pravatar dynamic placeholder
+            const customerImg = booking.userImage || `https://i.pravatar.cc/100?u=${encodeURIComponent(booking.userName)}`;
+            
             html += `
-            <div class="booking-card">
-                <div class="booking-left">
-                    <div class="booking-code">${booking.id}</div>
-                    <div class="booking-service">${booking.serviceName}</div>
-                    <div class="booking-name">${booking.userName}</div>
+            <div class="booking-card" style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 0.9rem;">
+                <div class="booking-left" style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                    <img src="${customerImg}" alt="Customer" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(218, 165, 32, 0.3); flex-shrink: 0;">
+                    <div style="min-width: 0;">
+                        <div class="booking-code" style="font-weight: 700; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${booking.id}</div>
+                        <div class="booking-service" style="color: var(--text-grey); font-size: 0.85rem; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${booking.serviceName}</div>
+                        <div class="booking-name" style="font-size: 0.9rem; font-weight: 600; color: var(--text-dark-contrast); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${booking.userName}</div>
+                    </div>
                 </div>
-                <div class="booking-right">
-                    <div class="booking-time">${booking.time}</div>
-                    <div class="booking-status ${statusClass}">${statusText}</div>
+                <div class="booking-right" style="text-align: right; min-width: 80px; flex-shrink: 0;">
+                    <div class="booking-time" style="font-weight: 700; color: var(--text-dark-contrast);">${booking.time}</div>
+                    <div class="booking-status ${statusClass}" style="margin-top: 6px; font-size: 0.75rem; padding: 3px 8px; border-radius: 12px; display: inline-block;">${statusText}</div>
                 </div>
             </div>
             `;

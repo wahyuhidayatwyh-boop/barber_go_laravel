@@ -160,7 +160,7 @@ Route::post('/update-profile', function (Request $request) {
 Route::get('/home-data', function (Request $request) {
     try {
         $settings = DB::table('barbershop_settings')->first();
-        $totalQueue = Booking::whereIn('status', ['pending', 'waiting'])->whereDate('booking_date', now())->count();
+        $totalQueue = Booking::whereIn('status', ['pending', 'confirmed', 'in_progress'])->whereDate('booking_date', date('Y-m-d'))->count();
 
         // Mapping services untuk menambahkan full URL pada image_url
         $services = Service::all()->map(function ($service) use ($request) {
@@ -335,6 +335,24 @@ Route::post('/bookings', function (Request $request) {
         // Reload with relationships for complete response
         $booking->load(['service', 'barber']);
 
+        $queuePosition = 1;
+        $peopleAhead = 0;
+        if ($booking->booking_date) {
+            $dateStr = $booking->booking_date->format('Y-m-d');
+            $activeBookingsToday = Booking::where('booking_date', $dateStr)
+                ->whereIn('status', ['pending', 'confirmed', 'in_progress'])
+                ->orderBy('booking_time', 'asc')
+                ->orderBy('created_at', 'asc')
+                ->pluck('id')
+                ->toArray();
+            
+            $pos = array_search($booking->id, $activeBookingsToday);
+            if ($pos !== false) {
+                $queuePosition = $pos + 1;
+                $peopleAhead = $pos;
+            }
+        }
+
         return response()->json([
             'status' => 'success',
             'message' => 'Booking berhasil disimpan',
@@ -354,6 +372,8 @@ Route::post('/bookings', function (Request $request) {
                 'payment_method' => $booking->payment_method,
                 'payment_status' => $booking->payment_status,
                 'created_at' => $booking->created_at->format('Y-m-d H:i:s'),
+                'queue_number' => $queuePosition,
+                'people_ahead' => $peopleAhead,
             ]
         ], 201);
     } catch (\Exception $e) {
@@ -380,6 +400,24 @@ Route::get('/active-booking', function (Request $request) {
             ->first();
 
         if ($active) {
+            $queuePosition = 1;
+            $peopleAhead = 0;
+            if ($active->booking_date) {
+                $dateStr = $active->booking_date->format('Y-m-d');
+                $activeBookingsToday = Booking::where('booking_date', $dateStr)
+                    ->whereIn('status', ['pending', 'confirmed', 'in_progress'])
+                    ->orderBy('booking_time', 'asc')
+                    ->orderBy('created_at', 'asc')
+                    ->pluck('id')
+                    ->toArray();
+                
+                $pos = array_search($active->id, $activeBookingsToday);
+                if ($pos !== false) {
+                    $queuePosition = $pos + 1;
+                    $peopleAhead = $pos;
+                }
+            }
+
             $active = [
                 'id' => $active->id,
                 'booking_id' => $active->booking_id,
@@ -396,6 +434,8 @@ Route::get('/active-booking', function (Request $request) {
                 'payment_method' => $active->payment_method,
                 'payment_status' => $active->payment_status,
                 'created_at' => $active->created_at->format('Y-m-d H:i:s'),
+                'queue_number' => $queuePosition,
+                'people_ahead' => $peopleAhead,
             ];
         }
 
