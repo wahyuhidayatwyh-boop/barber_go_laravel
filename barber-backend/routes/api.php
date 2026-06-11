@@ -160,7 +160,10 @@ Route::post('/update-profile', function (Request $request) {
 Route::get('/home-data', function (Request $request) {
     try {
         $settings = DB::table('barbershop_settings')->first();
-        $totalQueue = Booking::whereIn('status', ['pending', 'confirmed', 'in_progress'])->whereDate('booking_date', date('Y-m-d'))->count();
+        $today = now()->timezone('Asia/Jakarta')->format('Y-m-d');
+        $totalQueue = Booking::whereIn('status', ['pending', 'confirmed', 'in_progress'])
+                             ->whereDate('booking_date', $today)
+                             ->count();
 
         // Mapping services untuk menambahkan full URL pada image_url
         $services = Service::all()->map(function ($service) use ($request) {
