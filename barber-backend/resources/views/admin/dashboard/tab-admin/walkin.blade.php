@@ -49,12 +49,22 @@
                     <label for="barber-select">Barber</label>
                     <select id="barber-select">
                         <option value="">Pilih Barber</option>
+                        @if(isset($barbers))
+                            @foreach($barbers as $barber)
+                                <option value="{{ $barber->id }}">{{ $barber->name }}</option>
+                            @endforeach
+                        @endif
                     </select>
                 </div>
                 <div class="form-group">
                     <label for="layanan-select">Layanan</label>
                     <select id="layanan-select">
                         <option value="">Pilih Layanan</option>
+                        @if(isset($services))
+                            @foreach($services as $service)
+                                <option value="{{ $service->id }}">{{ $service->name }} - Rp {{ number_format($service->price, 0, ',', '.') }}</option>
+                            @endforeach
+                        @endif
                     </select>
                 </div>
                 <div class="form-group">
@@ -237,43 +247,9 @@ function loadAvailableTimeSlots() {
     });
 }
 
-// Fungsi untuk mengisi dropdown barber dan layanan
+// Fungsi loadWalkInData telah digantikan dengan rendering sisi server Blade
 function loadWalkInData() {
-    // Load barbers
-    fetch('{{ route("admin.barbers.index") }}')
-        .then(response => response.json())
-        .then(barbers => {
-            const barberSelect = document.getElementById('barber-select');
-            if (barberSelect) {
-                barberSelect.innerHTML = '<option value="">Pilih Barber</option>';
-                barbers.forEach(barber => {
-                    if (barber.status === 'active' || !barber.status) {
-                        const option = document.createElement('option');
-                        option.value = barber.id;
-                        option.textContent = barber.name;
-                        barberSelect.appendChild(option);
-                    }
-                });
-            }
-        })
-        .catch(error => console.error('Error loading barbers:', error));
-    
-    // Load services
-    fetch('{{ route("admin.services") }}')
-        .then(response => response.json())
-        .then(services => {
-            const serviceSelect = document.getElementById('layanan-select');
-            if (serviceSelect) {
-                serviceSelect.innerHTML = '<option value="">Pilih Layanan</option>';
-                services.forEach(service => {
-                    const option = document.createElement('option');
-                    option.value = service.id;
-                    option.textContent = `${service.name} - Rp ${Number(service.price).toLocaleString('id-ID')}`;
-                    serviceSelect.appendChild(option);
-                });
-            }
-        })
-        .catch(error => console.error('Error loading services:', error));
+    // Kosong (Data sudah diload lewat server)
 }
 
 function updateLastUpdatedTime() {

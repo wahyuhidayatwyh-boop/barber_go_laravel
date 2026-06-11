@@ -658,7 +658,9 @@ class AdminController extends Controller
 
     public function showWalkIn()
     {
-        return view('admin.dashboard.tab-admin.walkin');
+        $barbers = \App\Models\Barber::where('status', 'active')->orWhereNull('status')->get();
+        $services = \App\Models\Service::all();
+        return view('admin.dashboard.tab-admin.walkin', compact('barbers', 'services'));
     }
 
     public function showSchedule()
