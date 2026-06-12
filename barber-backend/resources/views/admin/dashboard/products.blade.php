@@ -131,9 +131,9 @@
 </div>
 
 <!-- Modal untuk edit layanan -->
-<div id="editServiceModal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4);">
-    <div class="modal-content" style="background-color: var(--surface-card); margin: 5% auto; padding: 20px; border: none; border-radius: 8px; width: 60%; max-width: 600px;">
-        <h3 style="color: var(--accent-gold);">Edit Layanan</h3>
+<div id="editServiceModal" class="modal" style="display: none; position: fixed; z-index: 1050; left: 0; top: 0; width: 100%; height: 100%; overflow-y: auto; background-color: rgba(0,0,0,0.8); backdrop-filter: blur(5px);">
+    <div class="modal-content" style="background-color: var(--surface-card, #1e1e1e); margin: 5vh auto; padding: 30px; border: 1px solid var(--border-subtle, #333); border-radius: 15px; width: 92%; max-width: 550px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); position: relative;">
+        <h3 style="color: var(--accent-gold); margin-bottom: 20px; font-size: 1.5rem; border-bottom: 1px solid var(--border-subtle, #333); padding-bottom: 10px;">Edit Layanan</h3>
         <form id="editServiceForm">
             <input type="hidden" id="editServiceId" name="id">
             <div class="form-group">
@@ -150,25 +150,25 @@
             </div>
             <div class="form-group">
                 <label>Deskripsi</label>
-                <textarea id="editServiceDescription" name="description" style="height: 80px;"></textarea>
+                <textarea id="editServiceDescription" name="description" style="height: 100px; width: 100%; box-sizing: border-box; resize: vertical; padding: 10px; border-radius: 8px; border: 1px solid var(--border-subtle, #444); background: var(--surface-light, #2a2a2a); color: white;"></textarea>
             </div>
             <div class="form-group">
                 <label>Ganti Foto Layanan (Opsional)</label>
                 <input type="file" id="editServiceImage" name="image" accept="image/*">
                 <div id="currentServiceImage" style="margin-top: 10px;"></div>
             </div>
-            <div style="margin-top: 1rem;">
-                <button type="submit" class="btn-primary">Simpan Perubahan</button>
-                <button type="button" class="btn-secondary" onclick="closeEditServiceModal()">Batal</button>
+            <div style="margin-top: 1.5rem; display: flex; gap: 15px; justify-content: flex-end; border-top: 1px solid var(--border-subtle, #333); padding-top: 20px;">
+                <button type="button" class="btn-secondary" onclick="closeEditServiceModal()" style="padding: 10px 20px; border-radius: 8px;">Batal</button>
+                <button type="submit" class="btn-primary" style="padding: 10px 20px; border-radius: 8px;">Simpan Perubahan</button>
             </div>
         </form>
     </div>
 </div>
 
 <!-- Modal untuk edit produk -->
-<div id="editProductModal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4);">
-    <div class="modal-content" style="background-color: var(--surface-card); margin: 5% auto; padding: 20px; border: none; border-radius: 8px; width: 60%; max-width: 600px;">
-        <h3 style="color: var(--accent-gold);">Edit Produk</h3>
+<div id="editProductModal" class="modal" style="display: none; position: fixed; z-index: 1050; left: 0; top: 0; width: 100%; height: 100%; overflow-y: auto; background-color: rgba(0,0,0,0.8); backdrop-filter: blur(5px);">
+    <div class="modal-content" style="background-color: var(--surface-card, #1e1e1e); margin: 5vh auto; padding: 30px; border: 1px solid var(--border-subtle, #333); border-radius: 15px; width: 92%; max-width: 550px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); position: relative;">
+        <h3 style="color: var(--accent-gold); margin-bottom: 20px; font-size: 1.5rem; border-bottom: 1px solid var(--border-subtle, #333); padding-bottom: 10px;">Edit Produk</h3>
         <form id="editProductForm">
             <input type="hidden" id="editProductId" name="id">
             <div class="form-group">
@@ -192,16 +192,16 @@
             </div>
             <div class="form-group">
                 <label>Deskripsi</label>
-                <textarea id="editProductDescription" name="description" style="height: 80px;"></textarea>
+                <textarea id="editProductDescription" name="description" style="height: 100px; width: 100%; box-sizing: border-box; resize: vertical; padding: 10px; border-radius: 8px; border: 1px solid var(--border-subtle, #444); background: var(--surface-light, #2a2a2a); color: white;"></textarea>
             </div>
             <div class="form-group">
                 <label>Ganti Foto Produk (Opsional)</label>
                 <input type="file" id="editProductImage" name="image" accept="image/*">
                 <div id="currentProductImage" style="margin-top: 10px;"></div>
             </div>
-            <div style="margin-top: 1rem;">
-                <button type="submit" class="btn-primary">Simpan Perubahan</button>
-                <button type="button" class="btn-secondary" onclick="closeEditProductModal()">Batal</button>
+            <div style="margin-top: 1.5rem; display: flex; gap: 15px; justify-content: flex-end; border-top: 1px solid var(--border-subtle, #333); padding-top: 20px;">
+                <button type="button" class="btn-secondary" onclick="closeEditProductModal()" style="padding: 10px 20px; border-radius: 8px;">Batal</button>
+                <button type="submit" class="btn-primary" style="padding: 10px 20px; border-radius: 8px;">Simpan Perubahan</button>
             </div>
         </form>
     </div>
