@@ -169,6 +169,7 @@ Route::get('/home-data', function (Request $request) {
         $services = Service::all()->map(function ($service) use ($request) {
             $service->price = (int) ($service->price ?? 0);
             $service->image_url = serviceImageUrl($request, $service->image_url, $service->id);
+            $service->makeHidden(['image_path', 'image']);
             return $service;
         });
 
@@ -176,6 +177,7 @@ Route::get('/home-data', function (Request $request) {
             ->orderByDesc('id')->get()->map(function ($product) use ($request) {
                 $product->price = (int) ($product->price ?? 0);
                 $product->image_url = productImageUrl($request, $product->image_url, $product->id);
+                $product->makeHidden(['image_path', 'image']);
                 return $product;
             });
 
@@ -183,6 +185,7 @@ Route::get('/home-data', function (Request $request) {
             // Always regenerate image_url from image_path to avoid stale localhost URLs
             $imageSrc = $banner->image_path ?? $banner->image_url ?? null;
             $banner->image_url = bannerImageUrl($request, $imageSrc, $banner->id);
+            $banner->makeHidden(['image_path', 'image']);
             return $banner;
         });
 
@@ -221,6 +224,7 @@ Route::get('/barbers', function (Request $request) {
             } else {
                 $barber->image_url = $imageSrc;
             }
+            
             return [
                 'id' => $barber->id,
                 'name' => $barber->name,
