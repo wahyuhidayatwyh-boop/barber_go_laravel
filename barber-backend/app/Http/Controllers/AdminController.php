@@ -167,7 +167,7 @@ class AdminController extends Controller
 
     public function getAllUsers()
     {
-        $users = User::all();
+        $users = User::select('id', 'name', 'email', 'phone', 'role')->get();
         return response()->json($users);
     }
 
@@ -189,7 +189,7 @@ class AdminController extends Controller
 
     public function getAllProducts()
     {
-        $products = Product::all();
+        $products = Product::select('id', 'name', 'price', 'description', 'stock_quantity', 'status', 'is_available')->get();
         return response()->json($products);
     }
 
@@ -319,13 +319,13 @@ class AdminController extends Controller
 
     public function showBarbers()
     {
-        $barbers = Barber::all();
+        $barbers = Barber::select('id', 'name', 'specialty', 'rating', 'status')->get();
         return view('admin.dashboard.barbers', compact('barbers'));
     }
 
     public function getAllBarbers()
     {
-        $barbers = Barber::all();
+        $barbers = Barber::select('id', 'name', 'specialty', 'rating', 'status')->get();
         return response()->json($barbers);
     }
 
@@ -835,8 +835,8 @@ class AdminController extends Controller
     public function getAllProductsAndServices()
     {
         
-        $products = Product::all();
-        $services = Service::all();
+        $products = Product::select('id', 'name', 'price', 'description', 'status')->get();
+        $services = Service::select('id', 'name', 'price', 'description')->get();
         
         // Combine both with a type indicator
         $allItems = [];
@@ -870,13 +870,13 @@ class AdminController extends Controller
     // Banner Management
     public function showBanners()
     {
-        $banners = \App\Models\Banner::all();
+        $banners = \App\Models\Banner::select('id', 'title', 'description', 'is_active')->get();
         return view('admin.dashboard.banners', compact('banners'));
     }
 
     public function getAllBanners()
     {
-        $banners = \App\Models\Banner::all();
+        $banners = \App\Models\Banner::select('id', 'title', 'description', 'is_active')->get();
         return response()->json($banners);
     }
 
