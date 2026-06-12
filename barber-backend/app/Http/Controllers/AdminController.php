@@ -189,7 +189,7 @@ class AdminController extends Controller
 
     public function getAllProducts()
     {
-        $products = Product::select('id', 'name', 'price', 'description', 'stock_quantity', 'status', 'is_available')->get();
+        $products = Product::select('id', 'name', 'price', 'description', 'stock_quantity', 'status', 'is_available', 'image_path', 'image_url')->get();
         return response()->json($products);
     }
 
@@ -319,13 +319,13 @@ class AdminController extends Controller
 
     public function showBarbers()
     {
-        $barbers = Barber::select('id', 'name', 'specialty', 'rating', 'status')->get();
+        $barbers = Barber::select('id', 'name', 'specialty', 'rating', 'status', 'image_path', 'image_url')->get();
         return view('admin.dashboard.barbers', compact('barbers'));
     }
 
     public function getAllBarbers()
     {
-        $barbers = Barber::select('id', 'name', 'specialty', 'rating', 'status')->get();
+        $barbers = Barber::select('id', 'name', 'specialty', 'rating', 'status', 'image_path', 'image_url')->get();
         return response()->json($barbers);
     }
 
@@ -870,13 +870,13 @@ class AdminController extends Controller
     // Banner Management
     public function showBanners()
     {
-        $banners = \App\Models\Banner::select('id', 'title', 'description', 'is_active')->get();
+        $banners = \App\Models\Banner::select('id', 'title', 'description', 'is_active', 'image_path', 'image_url')->get();
         return view('admin.dashboard.banners', compact('banners'));
     }
 
     public function getAllBanners()
     {
-        $banners = \App\Models\Banner::select('id', 'title', 'description', 'is_active')->get();
+        $banners = \App\Models\Banner::select('id', 'title', 'description', 'is_active', 'image_path', 'image_url')->get();
         return response()->json($banners);
     }
 
