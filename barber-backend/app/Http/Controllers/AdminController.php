@@ -941,23 +941,42 @@ class AdminController extends Controller
     }
 
     /**
-     * Helper to handle image uploads
+     * Helper to handle image uploads using ImgBB API to prevent database bloat
      */
     private function handleImageUpload($file, $folder)
     {
         try {
-            // In Serverless Vercel, the /tmp filesystem is ephemeral and pictures disappear.
-            // Converting to base64 and saving into TEXT field solves it instantly without external storage like S3.
-            $mime = $file->getMimeType();
+            // Kita ambil API key dari .env
+            $apiKey = env('IMGBB_API_KEY');
+            
             $data = file_get_contents($file->getRealPath());
             $base64 = base64_encode($data);
             
-            \Log::info("Image converted to base64 successfully for folder {$folder}");
+            // Jika ada API key, upload ke ImgBB
+            if ($apiKey) {
+                $response = \Illuminate\Support\Facades\Http::asForm()->post('https://api.imgbb.com/1/upload', [
+                    'key' => $apiKey,
+                    'image' => $base64,
+                    'name' => $folder . '_' . time()
+                ]);
+                
+                if ($response->successful() && isset($response['data']['url'])) {
+                    \Log::info("Image uploaded successfully to ImgBB: " . $response['data']['url']);
+                    // Return the direct URL from ImgBB
+                    return $response['data']['url'];
+                }
+                
+                \Log::warning("ImgBB upload failed: " . $response->body());
+            }
             
+            // JIKA tidak ada API Key atau gagal, tetap terapkan Fallback (Base64) agar fitur upload tetap jalan sementara.
+            $mime = $file->getMimeType();
             return 'data:' . $mime . ';base64,' . $base64;
+            
         } catch (\Exception $e) {
-            \Log::error("Error processing image to base64 for {$folder}: " . $e->getMessage());
-            throw $e;
+            \Log::error("Error processing image upload: " . $e->getMessage());
+            $mime = $file->getMimeType();
+            return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($file->getRealPath()));
         }
     }
 }
